@@ -1,0 +1,8 @@
+-Wall
+-Werror
+-Wextra
+-pedantic
+--std=c17
+-g
+-O3
+-Iinclude
