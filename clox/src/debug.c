@@ -25,6 +25,11 @@ static size_t disassemble_instruction(const chunk *c, size_t offset)
 {
 	printf("%04lu ", offset);
 
+	if (offset > 0 && c->lines[offset] == c->lines[offset - 1])
+		printf("   | ");
+	else
+		printf("%4d ", c->lines[offset]);
+
 	opcode instruction = c->codes[offset];
 	switch (instruction) {
 	case OP_CONSTANT:
