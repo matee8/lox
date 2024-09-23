@@ -21,7 +21,7 @@ static inline size_t simple_instruction(const char *name, size_t offset)
 	return offset + 1;
 }
 
-static size_t disassemble_instruction(const chunk *c, size_t offset)
+size_t __debug_disassemble_instruction(const chunk *c, size_t offset)
 {
 	printf("%04lu ", offset);
 
@@ -49,5 +49,5 @@ void __debug_disassemble_chunk(const chunk *c, const char *name)
 	size_t offset = 0;
 
 	while (offset < c->len)
-		offset = disassemble_instruction(c, offset);
+		offset = __debug_disassemble_instruction(c, offset);
 }
