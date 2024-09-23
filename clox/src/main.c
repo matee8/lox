@@ -5,7 +5,7 @@
 
 int main(void)
 {
-	struct chunk c;
+	chunk c;
 
 	chunk_init(&c);
 	chunk_write(&c, OP_RETURN);

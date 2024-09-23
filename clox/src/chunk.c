@@ -5,14 +5,14 @@
 
 #include "clox/memory.h"
 
-void chunk_init(struct chunk *c)
+void chunk_init(chunk *c)
 {
 	c->len = 0;
 	c->cap = 0;
 	c->codes = NULL;
 }
 
-void chunk_write(struct chunk *c, uint8_t byte)
+void chunk_write(chunk *c, uint8_t byte)
 {
 	if (c->cap < c->len + 1) {
 		c->cap = GROW_CAP(c->cap);
@@ -23,7 +23,7 @@ void chunk_write(struct chunk *c, uint8_t byte)
 	c->len++;
 }
 
-void chunk_free(struct chunk *c)
+void chunk_free(chunk *c)
 {
 	FREE_ARR(uint8_t, c->codes);
 	chunk_init(c);

@@ -5,6 +5,6 @@
 
 #include "clox/chunk.h"
 
-void __debug_disassemble_chunk(const struct chunk *c, const char *name);
+void __debug_disassemble_chunk(const chunk *c, const char *name);
 
 #endif
