@@ -4,18 +4,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
-enum opcode {
+typedef enum {
     OP_RETURN
-};
+} opcode;
 
-struct chunk {
+typedef struct {
     size_t len;
     size_t cap;
     uint8_t *codes;
-};
+} chunk;
 
-void chunk_init(struct chunk *c);
-void chunk_write(struct chunk *c, uint8_t byte);
-void chunk_free(struct chunk *c);
+void chunk_init(chunk *c);
+void chunk_write(chunk *c, uint8_t byte);
+void chunk_free(chunk *c);
 
 #endif
