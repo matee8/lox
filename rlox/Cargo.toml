@@ -24,8 +24,6 @@ panic = "abort"
 [dependencies]
 
 [lints.rust]
-dead-code = "allow"
-unreachable-patterns = "allow"
 absolute-paths-not-starting-with-crate = "warn"
 deprecated-in-future = "warn"
 rust_2018_idioms = "warn"
@@ -79,3 +77,4 @@ arithmetic_side_effects = "allow"
 semicolon_outside_block = "allow"
 shadow_same = "allow"
 module_name_repetitions = "allow"
+min_ident_chars = "allow"
