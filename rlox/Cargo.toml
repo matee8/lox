@@ -22,6 +22,7 @@ lto = "fat"
 panic = "abort"
 
 [dependencies]
+thiserror = "1.0.64"
 
 [lints.rust]
 absolute-paths-not-starting-with-crate = "warn"
@@ -78,3 +79,6 @@ semicolon_outside_block = "allow"
 shadow_same = "allow"
 module_name_repetitions = "allow"
 min_ident_chars = "allow"
+print_stderr = "allow"
+print_stdout = "allow"
+std_instead_of_alloc = "allow"
