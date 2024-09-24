@@ -5,8 +5,13 @@ use crate::value::Value;
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum OpCode {
-    OpConstant(usize),
-    OpReturn,
+    Constant(usize),
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Negate,
+    Return,
 }
 
 #[derive(Default)]
@@ -36,7 +41,15 @@ impl Chunk {
     #[inline]
     pub fn write_constant(&mut self, constant: Value, line: i32) {
         self.constants.push(constant);
-        self.write_opcode(OpCode::OpConstant(self.constants.len() - 1), line);
+        self.write_opcode(OpCode::Constant(self.constants.len() - 1), line);
+    }
+
+    pub(crate) const fn codes(&self) -> &Vec<OpCode> {
+        &self.codes
+    }
+
+    pub(crate) const fn constants(&self) -> &Vec<Value> {
+        &self.constants
     }
 }
 
@@ -55,7 +68,7 @@ impl Debug for Chunk {
             }
 
             match *instruction {
-                OpCode::OpConstant(const_idx) => {
+                OpCode::Constant(const_idx) => {
                     let const_val = self.constants[const_idx];
                     writeln!(
                         f,
@@ -63,7 +76,12 @@ impl Debug for Chunk {
                         "OP_CONSTANT"
                     )?;
                 }
-                OpCode::OpReturn => writeln!(f, "OP_RETURN")?,
+                OpCode::Add => writeln!(f, "OP_ADD")?,
+                OpCode::Subtract => writeln!(f, "OP_SUBTRACT")?,
+                OpCode::Multiply => writeln!(f, "OP_MULTIPLY")?,
+                OpCode::Divide => writeln!(f, "OP_DIVIDE")?,
+                OpCode::Negate => writeln!(f, "OP_NEGATE")?,
+                OpCode::Return => writeln!(f, "OP_RETURN")?,
             }
         }
         Ok(())
