@@ -20,7 +20,8 @@ typedef enum {
 } interpret_result;
 
 void virtual_machine_init(virtual_machine *vm);
-interpret_result virtual_machine_interpret(virtual_machine *vm, chunk *c);
+interpret_result virtual_machine_interpret(virtual_machine *vm,
+					   const char *src);
 void virtual_machine_push(virtual_machine *vm, value val);
 value virtual_machine_pop(virtual_machine *vm);
 // void virtual_machine_free(virtual_machine *vm);
