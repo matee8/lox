@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "clox/chunk.h"
+#include "clox/compiler.h"
 #include "clox/value.h"
 #include "clox/debug.h"
 
@@ -17,7 +18,7 @@ void virtual_machine_init(virtual_machine *vm)
 	reset_stack(vm);
 }
 
-interpret_result virtual_machine_interpret(virtual_machine *vm, chunk *c)
+interpret_result run(virtual_machine *vm, chunk *c)
 {
 	vm->chunk = c;
 	vm->ip = &vm->chunk->codes[0];
@@ -71,6 +72,13 @@ interpret_result virtual_machine_interpret(virtual_machine *vm, chunk *c)
 	}
 #undef READ_BYTE
 #undef BINARY_OP
+}
+
+interpret_result virtual_machine_interpret(virtual_machine *vm, const char *src)
+{
+    (void)vm;
+    compile(src);
+    return INTERPRET_OK;
 }
 
 void virtual_machine_push(virtual_machine *vm, value val)
