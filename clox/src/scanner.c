@@ -14,6 +14,11 @@ static inline uint8_t is_digit(char c)
 	return c >= '0' && c <= '9';
 }
 
+static inline uint8_t is_alpha(char c)
+{
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
 static inline uint8_t is_at_end(const scanner *sc)
 {
 	return *sc->current == '\0';
@@ -94,6 +99,92 @@ static inline void skip_whitespace(scanner *sc)
 	}
 }
 
+static inline token_type check_keyword(scanner *sc, int32_t start, int32_t len,
+				       const char *rest, token_type type)
+{
+	if (sc->current - sc->start == start + len &&
+	    memcmp(sc->start + start, rest, len) == 0)
+		return type;
+
+	return TOKEN_IDENTIFIER;
+}
+
+static token identifier(scanner *sc)
+{
+	while (is_alpha(peek(sc)) || is_digit(peek(sc)))
+		advance(sc);
+
+	token_type type = TOKEN_IDENTIFIER;
+
+	switch (sc->start[0]) {
+	case 'a':
+		type = check_keyword(sc, 1, 2, "nd", TOKEN_AND);
+		break;
+	case 'c':
+		type = check_keyword(sc, 1, 4, "lass", TOKEN_CLASS);
+		break;
+	case 'e':
+		type = check_keyword(sc, 1, 3, "lse", TOKEN_ELSE);
+		break;
+	case 'f':
+		if (sc->current - sc->start > 1) {
+			switch (sc->start[1]) {
+			case 'a':
+				type = check_keyword(sc, 2, 3, "lse",
+						     TOKEN_FALSE);
+				break;
+			case 'o':
+				type = check_keyword(sc, 2, 1, "r", TOKEN_FOR);
+				break;
+			case 'u':
+				type = check_keyword(sc, 2, 1, "n", TOKEN_FUN);
+				break;
+			}
+		}
+		break;
+	case 'i':
+		type = check_keyword(sc, 1, 1, "f", TOKEN_IF);
+		break;
+	case 'n':
+		type = check_keyword(sc, 1, 2, "il", TOKEN_NIL);
+		break;
+	case 'o':
+		type = check_keyword(sc, 1, 1, "r", TOKEN_OR);
+		break;
+	case 'p':
+		type = check_keyword(sc, 1, 4, "rint", TOKEN_PRINT);
+		break;
+	case 'r':
+		type = check_keyword(sc, 1, 5, "eturn", TOKEN_RETURN);
+		break;
+	case 's':
+		type = check_keyword(sc, 1, 4, "uper", TOKEN_SUPER);
+		break;
+	case 't':
+		if (sc->current - sc->start > 1) {
+			switch (sc->start[1]) {
+			case 'h':
+				type = check_keyword(sc, 2, 2, "is",
+						     TOKEN_THIS);
+				break;
+			case 'r':
+				type = check_keyword(sc, 2, 2, "ue",
+						     TOKEN_TRUE);
+				break;
+			}
+		}
+		break;
+	case 'v':
+		type = check_keyword(sc, 1, 2, "ar", TOKEN_VAR);
+		break;
+	case 'w':
+		type = check_keyword(sc, 1, 4, "hile", TOKEN_WHILE);
+		break;
+	}
+
+	return make_token(sc, type);
+}
+
 static token string(scanner *sc)
 {
 	while (peek(sc) != '"' && !is_at_end(sc)) {
@@ -124,7 +215,7 @@ static token number(scanner *sc)
 	return make_token(sc, TOKEN_NUMBER);
 }
 
-token scan_token(scanner *sc)
+token scanner_scan_token(scanner *sc)
 {
 	skip_whitespace(sc);
 	sc->start = sc->current;
@@ -133,6 +224,9 @@ token scan_token(scanner *sc)
 		return make_token(sc, TOKEN_EOF);
 
 	char c = advance(sc);
+
+	if (is_alpha(c))
+		return identifier(sc);
 
 	switch (c) {
 	case '(':

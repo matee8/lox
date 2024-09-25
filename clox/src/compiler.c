@@ -12,7 +12,7 @@ void compile(const char *src)
 
 	int line = -1;
 	while (1) {
-		token t = scan_token(&sc);
+		token t = scanner_scan_token(&sc);
 		if (t.line != line) {
 			printf("%4d ", t.line);
 			line = t.line;
