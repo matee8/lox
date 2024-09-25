@@ -18,7 +18,7 @@ void virtual_machine_init(virtual_machine *vm)
 	reset_stack(vm);
 }
 
-interpret_result run(virtual_machine *vm, chunk *c)
+static interpret_result run(virtual_machine *vm, chunk *c)
 {
 	vm->chunk = c;
 	vm->ip = &vm->chunk->codes[0];
