@@ -8,14 +8,9 @@
 #include "clox/value.h"
 #include "clox/debug.h"
 
-static void reset_stack(virtual_machine *vm)
-{
-	vm->stack_top = vm->stack;
-}
-
 void virtual_machine_init(virtual_machine *vm)
 {
-	reset_stack(vm);
+	vm->stack_top = vm->stack;
 }
 
 static interpret_result run(virtual_machine *vm, chunk *c)
@@ -76,9 +71,9 @@ static interpret_result run(virtual_machine *vm, chunk *c)
 
 interpret_result virtual_machine_interpret(virtual_machine *vm, const char *src)
 {
-    (void)vm;
-    compile(src);
-    return INTERPRET_OK;
+	(void)vm;
+	compile(src);
+	return INTERPRET_OK;
 }
 
 void virtual_machine_push(virtual_machine *vm, value val)
