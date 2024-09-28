@@ -1,5 +1,6 @@
 #include "clox/scanner.h"
 
+#include <stdint.h>
 #include <string.h>
 
 void scanner_init(scanner *sc, const char *src)
@@ -26,7 +27,7 @@ static inline uint8_t is_at_end(const scanner *sc)
 
 static inline char advance(scanner *sc)
 {
-	sc->current++;
+	++sc->current;
 	return sc->current[-1];
 }
 
@@ -48,7 +49,7 @@ static inline uint8_t match(scanner *sc, char expected)
 		return 0;
 	if (*sc->current != expected)
 		return 0;
-	sc->current++;
+	++sc->current;
 	return 1;
 }
 
@@ -83,7 +84,7 @@ static inline void skip_whitespace(scanner *sc)
 			advance(sc);
 			break;
 		case '\n':
-			sc->line++;
+			++sc->line;
 			advance(sc);
 			break;
 		case '/':
@@ -139,6 +140,8 @@ static token identifier(scanner *sc)
 			case 'u':
 				type = check_keyword(sc, 2, 1, "n", TOKEN_FUN);
 				break;
+            default:
+                break;
 			}
 		}
 		break;
@@ -171,6 +174,8 @@ static token identifier(scanner *sc)
 				type = check_keyword(sc, 2, 2, "ue",
 						     TOKEN_TRUE);
 				break;
+            default:
+                break;
 			}
 		}
 		break;
@@ -179,6 +184,9 @@ static token identifier(scanner *sc)
 		break;
 	case 'w':
 		type = check_keyword(sc, 1, 4, "hile", TOKEN_WHILE);
+		break;
+	default:
+		type = TOKEN_IDENTIFIER;
 		break;
 	}
 
@@ -189,7 +197,7 @@ static token string(scanner *sc)
 {
 	while (peek(sc) != '"' && !is_at_end(sc)) {
 		if (peek(sc) == '\n')
-			sc->line++;
+			++sc->line;
 		advance(sc);
 	}
 
@@ -276,7 +284,7 @@ token scanner_scan_token(scanner *sc)
 	case '8':
 	case '9':
 		return number(sc);
+	default:
+		return error_token(sc, "Unexpected character.");
 	}
-
-	return error_token(sc, "Unexpected character.");
 }

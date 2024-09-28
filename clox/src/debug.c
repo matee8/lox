@@ -3,32 +3,33 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "clox/chunk.h"
 #include "clox/value.h"
 
 static inline size_t constant_instruction(const char *name, const chunk *c,
 					  size_t offset)
 {
 	size_t const_idx = (size_t)c->codes[offset + 1];
-	printf("%-16s %4lu '", name, const_idx);
+	(void)printf("%-16s %4lu '", name, const_idx);
 	value_print(c->constants.values[const_idx]);
-	printf("'\n");
+	(void)puts("'\n");
 	return offset + 2;
 }
 
 static inline size_t simple_instruction(const char *name, size_t offset)
 {
-	printf("%s\n", name);
+	(void)printf("%s\n", name);
 	return offset + 1;
 }
 
 size_t __debug_disassemble_instruction(const chunk *c, size_t offset)
 {
-	printf("%04lu ", offset);
+	(void)printf("%04lu ", offset);
 
 	if (offset > 0 && c->lines[offset] == c->lines[offset - 1])
-		printf("   | ");
+		(void)puts("   | ");
 	else
-		printf("%4d ", c->lines[offset]);
+		(void)printf("%4d ", c->lines[offset]);
 
 	opcode instruction = c->codes[offset];
 	switch (instruction) {
@@ -54,7 +55,7 @@ size_t __debug_disassemble_instruction(const chunk *c, size_t offset)
 
 void __debug_disassemble_chunk(const chunk *c, const char *name)
 {
-	printf("== %s ==\n", name);
+	(void)printf("== %s ==\n", name);
 
 	size_t offset = 0;
 
