@@ -14,12 +14,12 @@ void compile(const char *src)
 	while (1) {
 		token t = scanner_scan_token(&sc);
 		if (t.line != line) {
-			printf("%4d ", t.line);
+			(void)printf("%4d ", t.line);
 			line = t.line;
 		} else {
-			printf("   | ");
+			(void)puts("   | ");
 		}
-		printf("%2d '%.*s'\n", t.type, (int32_t)t.len, t.start);
+		(void)printf("%2d '%.*s'\n", t.type, (int32_t)t.len, t.start);
 
 		if (t.type == TOKEN_EOF)
 			break;

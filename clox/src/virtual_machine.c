@@ -1,12 +1,12 @@
 #include "clox/virtual_machine.h"
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "clox/chunk.h"
 #include "clox/compiler.h"
 #include "clox/value.h"
-#include "clox/debug.h"
 
 void virtual_machine_init(virtual_machine *vm)
 {
@@ -28,11 +28,12 @@ static interpret_result run(virtual_machine *vm, chunk *c)
 
 	while (1) {
 #ifdef DEBUG_TRACE_EXECUTION
-		printf("          ");
-		for (value *slot = vm->stack; slot < vm->stack_top; slot++) {
+#include "clox/debug.h"
+		puts("          ");
+		for (value *slot = vm->stack; slot < vm->stack_top; ++slot) {
 			printf("[ %f ]", *slot);
 		}
-		printf("\n");
+		puts("\n");
 		(void)__debug_disassemble_instruction(
 			vm->chunk, (size_t)(vm->ip - vm->chunk->codes));
 #endif
@@ -61,8 +62,10 @@ static interpret_result run(virtual_machine *vm, chunk *c)
 			virtual_machine_push(vm, -virtual_machine_pop(vm));
 			break;
 		case OP_RETURN:
-			printf("%f\n", virtual_machine_pop(vm));
+			(void)printf("%f\n", virtual_machine_pop(vm));
 			return INTERPRET_OK;
+		default:
+			break;
 		}
 	}
 #undef READ_BYTE
@@ -79,7 +82,7 @@ interpret_result virtual_machine_interpret(virtual_machine *vm, const char *src)
 void virtual_machine_push(virtual_machine *vm, value val)
 {
 	*vm->stack_top = val;
-	vm->stack_top++;
+	++vm->stack_top;
 }
 
 value virtual_machine_pop(virtual_machine *vm)
@@ -87,7 +90,3 @@ value virtual_machine_pop(virtual_machine *vm)
 	vm->stack_top--;
 	return *vm->stack_top;
 }
-
-// void virtual_machine_free(virtual_machine *vm)
-// {
-// }
