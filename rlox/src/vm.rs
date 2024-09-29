@@ -7,7 +7,7 @@ use std::{
 
 use thiserror::Error;
 
-use crate::value::Value;
+use crate::{compiler, value::Value};
 
 #[non_exhaustive]
 #[derive(Debug, Error)]
@@ -79,6 +79,7 @@ impl Vm {
     where
         S: AsRef<str>,
     {
+        compiler::compile(source);
         Ok(())
     }
 
