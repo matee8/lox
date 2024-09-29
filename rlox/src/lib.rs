@@ -1,5 +1,5 @@
-pub mod chunk;
+pub(crate) mod chunk;
 pub mod compiler;
-pub mod scanner;
-pub mod value;
+pub(crate) mod scanner;
+pub(crate) mod value;
 pub mod vm;
