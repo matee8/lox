@@ -74,20 +74,20 @@ static interpret_result run(virtual_machine *vm, chunk *c)
 
 interpret_result virtual_machine_interpret(virtual_machine *vm, const char *src)
 {
-    chunk chunk;
-    chunk_init(&chunk);
+	chunk chunk;
+	chunk_init(&chunk);
 
 	if (!compile(src, &chunk)) {
-        chunk_free(&chunk);
-        return INTERPRET_COMPILE_ERROR;
-    }
+		chunk_free(&chunk);
+		return INTERPRET_COMPILE_ERROR;
+	}
 
-    vm->chunk = &chunk;
-    vm->ip = vm->chunk->codes;
+	vm->chunk = &chunk;
+	vm->ip = vm->chunk->codes;
 
-    interpret_result result = run(vm, &chunk);
+	interpret_result result = run(vm, &chunk);
 
-    chunk_free(&chunk);
+	chunk_free(&chunk);
 
 	return result;
 }
