@@ -54,8 +54,9 @@ static void consume(parser *p, scanner *sc, token_type type, const char *msg)
 	error_at(p, &p->current, msg);
 }
 
-static void emit_byte(chunk *c, parser *p, uint8_t byte) {
-    chunk_write(c, byte, p->previous.line);
+static void emit_byte(chunk *c, parser *p, uint8_t byte)
+{
+	chunk_write(c, byte, p->previous.line);
 }
 
 uint8_t compile(const char *src, chunk *c)
@@ -70,6 +71,6 @@ uint8_t compile(const char *src, chunk *c)
 
 	advance(&p, &sc);
 	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
-    emit_byte(c, &p, OP_RETURN);
+	emit_byte(c, &p, OP_RETURN);
 	return !p.had_error;
 }
