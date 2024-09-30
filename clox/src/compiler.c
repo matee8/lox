@@ -3,7 +3,6 @@
 #include <stdalign.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "clox/chunk.h"
 #include "clox/scanner.h"
@@ -55,11 +54,15 @@ static void consume(parser *p, scanner *sc, token_type type, const char *msg)
 	error_at(p, &p->current, msg);
 }
 
+static void emit_byte(chunk *c, parser *p, uint8_t byte) {
+    chunk_write(c, byte, p->previous.line);
+}
+
 uint8_t compile(const char *src, chunk *c)
 {
-	(void)c;
 	scanner sc;
 	parser p;
+
 	scanner_init(&sc, src);
 
 	p.had_error = 0;
@@ -67,5 +70,6 @@ uint8_t compile(const char *src, chunk *c)
 
 	advance(&p, &sc);
 	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
+    emit_byte(c, &p, OP_RETURN);
 	return !p.had_error;
 }
