@@ -102,6 +102,7 @@ impl<'src> Scanner<'src> {
             '>' => self.make_token(TokenType::Greater),
             '"' => self.string(),
             '0'..='9' => self.number(),
+            char if char.is_alphabetic() => self.identifier(),
             _ => self.error_token("Unexpected character."),
         }
     }
@@ -159,6 +160,21 @@ impl<'src> Scanner<'src> {
         }
     }
 
+    fn check_keyword(
+        &self,
+        start: usize,
+        rest: &str,
+        r#type: TokenType,
+    ) -> TokenType {
+        if self.current - self.start == start + rest.len()
+            && rest == &self.source[self.start + start..rest.len()]
+        {
+            r#type
+        } else {
+            TokenType::Identifier
+        }
+    }
+
     fn string(&mut self) -> Token<'src> {
         while self.peek() != Some('"') {
             if self.peek() == Some('\n') {
@@ -191,5 +207,66 @@ impl<'src> Scanner<'src> {
         }
 
         self.make_token(TokenType::Number)
+    }
+
+    fn identifier(&mut self) -> Token<'src> {
+        while self.peek().is_some_and(char::is_alphabetic) {
+            self.advance();
+        }
+
+        let identifier_type = match self.source.chars().nth(self.start) {
+            None => {
+                return self.error_token("Unexpected character.");
+            }
+            Some(char) => match char {
+                'a' => self.check_keyword(1, "nd", TokenType::And),
+                'c' => self.check_keyword(1, "lass", TokenType::Class),
+                'e' => self.check_keyword(1, "lse", TokenType::Else),
+                'i' => self.check_keyword(1, "f", TokenType::If),
+                'n' => self.check_keyword(1, "il", TokenType::Nil),
+                'o' => self.check_keyword(1, "r", TokenType::Or),
+                'p' => self.check_keyword(1, "rint", TokenType::Print),
+                'r' => self.check_keyword(1, "eturn", TokenType::Return),
+                's' => self.check_keyword(1, "uper", TokenType::Super),
+                'v' => self.check_keyword(1, "ar", TokenType::Var),
+                'w' => self.check_keyword(1, "hile", TokenType::While),
+                'f' => {
+                    if self.current - self.start > 1 {
+                        match self.source.chars().nth(self.start + 1) {
+                            Some('a') => {
+                                self.check_keyword(2, "lse", TokenType::False)
+                            }
+                            Some('o') => {
+                                self.check_keyword(2, "r", TokenType::For)
+                            }
+                            Some('u') => {
+                                self.check_keyword(2, "n", TokenType::Fun)
+                            }
+                            _ => TokenType::Identifier,
+                        }
+                    } else {
+                        TokenType::Identifier
+                    }
+                }
+                't' => {
+                    if self.current - self.start > 1 {
+                        match self.source.chars().nth(self.start + 1) {
+                            Some('h') => {
+                                self.check_keyword(2, "is", TokenType::This)
+                            }
+                            Some('r') => {
+                                self.check_keyword(2, "ue", TokenType::True)
+                            }
+                            _ => TokenType::Identifier,
+                        }
+                    } else {
+                        TokenType::Identifier
+                    }
+                }
+                _ => TokenType::Identifier,
+            },
+        };
+
+        self.make_token(identifier_type)
     }
 }
