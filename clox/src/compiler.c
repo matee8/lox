@@ -21,11 +21,10 @@ static void error_at(parser *p, token *t, const char *msg)
 	p->panic_mode = 1;
 	(void)fprintf(stderr, "[line %d] Error", t->line);
 
-	if (t->type == TOKEN_EOF) {
+	if (t->type == TOKEN_EOF)
 		(void)fprintf(stderr, " at end");
-	} else if (t->type != TOKEN_ERROR) {
+	else if (t->type != TOKEN_ERROR)
 		(void)fprintf(stderr, " at '%.*s'", (int32_t)t->len, t->start);
-	}
 
 	(void)fprintf(stderr, ": %s\n", msg);
 
@@ -54,11 +53,6 @@ static void consume(parser *p, scanner *sc, token_type type, const char *msg)
 	error_at(p, &p->current, msg);
 }
 
-static void emit_byte(chunk *c, parser *p, uint8_t byte)
-{
-	chunk_write(c, byte, p->previous.line);
-}
-
 uint8_t compile(const char *src, chunk *c)
 {
 	scanner sc;
@@ -71,6 +65,6 @@ uint8_t compile(const char *src, chunk *c)
 
 	advance(&p, &sc);
 	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
-	emit_byte(c, &p, OP_RETURN);
+	chunk_write(c, p.previous.line, OP_RETURN);
 	return !p.had_error;
 }
