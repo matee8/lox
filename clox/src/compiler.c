@@ -110,6 +110,30 @@ static void unary(parser *p, chunk *c)
 	}
 }
 
+static void binary(parser *p, chunk *c)
+{
+    token_type optype = p->previous.type;
+    parse_rule *rule = get_rule(optype);
+    parse_precedence((precedence)(rule->precedence + 1));
+
+    switch (optype) {
+    case TOKEN_PLUS:
+        chunk_write(c, OP_ADD, p->previous.line);
+        break;
+    case TOKEN_MINUS:
+        chunk_write(c, OP_SUBTRACT, p->previous.line);
+        break;
+    case TOKEN_STAR:
+        chunk_write(c, OP_MULTIPLY, p->previous.line);
+        break;
+    case TOKEN_SLASH:
+        chunk_write(c, OP_DIVIDE, p->previous.line);
+        break;
+    default:
+        return;
+    }
+}
+
 uint8_t compile(const char *src, chunk *c)
 {
 	scanner sc;
