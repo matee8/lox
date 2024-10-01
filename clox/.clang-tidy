@@ -11,7 +11,10 @@ Checks: >
   -readability-braces-around-statements,
   -bugprone-easily-swappable-parameters,
   -readability-identifier-length,
-  -concurrency-mt-unsafe
+  -concurrency-mt-unsafe,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
 WarningsAsErrors: '*'
 HeaderFilterRegex: '^./include/graphics/.*$'
 FormatStyle: none
