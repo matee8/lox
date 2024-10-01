@@ -3,6 +3,7 @@
 #include <stdalign.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "clox/chunk.h"
 #include "clox/scanner.h"
@@ -13,6 +14,20 @@ typedef struct __attribute__((aligned(128))) {
 	uint8_t had_error;
 	uint8_t panic_mode;
 } parser;
+
+typedef enum {
+	PREC_NONE,
+	PREC_ASSIGNMENT,
+	PREC_OR,
+	PREC_AND,
+	PREC_EQUALITY,
+	PREC_COMPARISON,
+	PREC_TERM,
+	PREC_FACTOR,
+	PREC_UNARY,
+	PREC_CALL,
+	PREC_PRIMARY
+} precedence;
 
 static void error_at(parser *p, token *t, const char *msg)
 {
@@ -43,6 +58,15 @@ static void advance(parser *p, scanner *sc)
 	}
 }
 
+static void parse_precedence(precedence pr)
+{
+}
+
+static void expression(void)
+{
+	parse_precedence(PREC_UNARY);
+}
+
 static void consume(parser *p, scanner *sc, token_type type, const char *msg)
 {
 	if (p->current.type == type) {
@@ -51,6 +75,39 @@ static void consume(parser *p, scanner *sc, token_type type, const char *msg)
 	}
 
 	error_at(p, &p->current, msg);
+}
+
+static void grouping(parser *p, scanner *sc)
+{
+	expression();
+	consume(p, sc, TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+}
+
+static void number(parser *p, chunk *c)
+{
+	double value = strtod(p->previous.start, NULL);
+	size_t const_idx = chunk_add_constant(c, value);
+	if (const_idx > UINT8_MAX) {
+		error_at(p, &p->current, "Too many constants in one chunk.");
+		const_idx = 0;
+	}
+	chunk_write(c, OP_CONSTANT, p->previous.line);
+	chunk_write(c, (uint8_t)const_idx, p->previous.line);
+}
+
+static void unary(parser *p, chunk *c)
+{
+	token_type optype = p->previous.type;
+
+	parse_precedence(PREC_UNARY);
+
+	switch (optype) {
+	case TOKEN_MINUS:
+		chunk_write(c, OP_NEGATE, p->previous.line);
+		break;
+	default:
+		return;
+	}
 }
 
 uint8_t compile(const char *src, chunk *c)
@@ -64,6 +121,7 @@ uint8_t compile(const char *src, chunk *c)
 	p.panic_mode = 0;
 
 	advance(&p, &sc);
+	expression();
 	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
 	chunk_write(c, p.previous.line, OP_RETURN);
 	return !p.had_error;
