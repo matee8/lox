@@ -45,22 +45,22 @@ typedef enum {
 	TOKEN_WHILE,
 	TOKEN_ERROR,
 	TOKEN_EOF
-} token_type;
+} TokenType;
 
-typedef struct {
-	token_type type;
+typedef struct __attribute__((aligned(32))) {
+	TokenType type;
 	const char *start;
 	size_t len;
 	int32_t line;
-} token;
+} Token;
 
-typedef struct {
+typedef struct __attribute__((aligned(32))) {
+	int32_t line;
 	const char *start;
 	const char *current;
-	int32_t line;
-} scanner;
+} Scanner;
 
-void scanner_init(scanner *sc, const char *src);
-token scanner_scan_token(scanner *sc);
+void scanner_init(Scanner *sc, const char *src);
+Token scanner_scan_token(Scanner *sc);
 
 #endif

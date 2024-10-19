@@ -6,7 +6,7 @@
 #include "clox/chunk.h"
 #include "clox/value.h"
 
-static inline size_t constant_instruction(const char *name, const chunk *c,
+static inline size_t constant_instruction(const char *name, const Chunk *c,
 					  size_t offset)
 {
 	size_t const_idx = (size_t)c->codes[offset + 1];
@@ -22,7 +22,7 @@ static inline size_t simple_instruction(const char *name, size_t offset)
 	return offset + 1;
 }
 
-size_t __debug_disassemble_instruction(const chunk *c, size_t offset)
+size_t debug_disassemble_instruction(const Chunk *c, size_t offset)
 {
 	(void)printf("%04lu ", offset);
 
@@ -31,7 +31,7 @@ size_t __debug_disassemble_instruction(const chunk *c, size_t offset)
 	else
 		(void)printf("%4d ", c->lines[offset]);
 
-	opcode instruction = c->codes[offset];
+	OpCode instruction = c->codes[offset];
 	switch (instruction) {
 	case OP_CONSTANT:
 		return constant_instruction("OP_CONSTANT", c, offset);
@@ -53,12 +53,12 @@ size_t __debug_disassemble_instruction(const chunk *c, size_t offset)
 	}
 }
 
-void __debug_disassemble_chunk(const chunk *c, const char *name)
+void debug_disassemble_chunk(const Chunk *c, const char *name)
 {
 	(void)printf("== %s ==\n", name);
 
 	size_t offset = 0;
 
 	while (offset < c->len)
-		offset = __debug_disassemble_instruction(c, offset);
+		offset = debug_disassemble_instruction(c, offset);
 }

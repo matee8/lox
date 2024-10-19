@@ -5,7 +5,7 @@
 
 #include "clox/chunk.h"
 
-void __debug_disassemble_chunk(const chunk *c, const char *name);
-size_t __debug_disassemble_instruction(const chunk *c, size_t offset);
+void debug_disassemble_chunk(const Chunk *c, const char *name);
+size_t debug_disassemble_instruction(const Chunk *c, size_t offset);
 
 #endif

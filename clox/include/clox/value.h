@@ -3,17 +3,17 @@
 
 #include <stddef.h>
 
-typedef double value;
+typedef double Value;
 
-typedef struct {
+typedef struct __attribute__((aligned(32))) {
 	size_t len;
 	size_t cap;
-	value *values;
-} value_array;
+	Value *values;
+} ValueArray;
 
-void value_print(value val);
-void value_array_init(value_array *arr);
-void value_array_write(value_array *arr, value val);
-void value_array_free(value_array *arr);
+void value_print(Value val);
+void value_array_init(ValueArray *arr);
+void value_array_write(ValueArray *arr, Value val);
+void value_array_free(ValueArray *arr);
 
 #endif

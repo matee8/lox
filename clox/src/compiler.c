@@ -9,11 +9,11 @@
 #include "clox/scanner.h"
 
 typedef struct __attribute__((aligned(128))) {
-	token current;
-	token previous;
+	Token current;
+	Token previous;
 	uint8_t had_error;
 	uint8_t panic_mode;
-} parser;
+} Parser;
 
 typedef enum {
 	PREC_NONE,
@@ -27,9 +27,9 @@ typedef enum {
 	PREC_UNARY,
 	PREC_CALL,
 	PREC_PRIMARY
-} precedence;
+} Precedence;
 
-static void error_at(parser *p, token *t, const char *msg)
+static void error_at(Parser *p, Token *t, const char *msg)
 {
 	if (p->panic_mode)
 		return;
@@ -46,7 +46,7 @@ static void error_at(parser *p, token *t, const char *msg)
 	p->had_error = 1;
 }
 
-static void advance(parser *p, scanner *sc)
+static void advance(Parser *p, Scanner *sc)
 {
 	p->previous = p->current;
 
@@ -58,7 +58,7 @@ static void advance(parser *p, scanner *sc)
 	}
 }
 
-static void parse_precedence(precedence pr)
+static void parse_precedence(Precedence pr)
 {
 }
 
@@ -67,7 +67,7 @@ static void expression(void)
 	parse_precedence(PREC_UNARY);
 }
 
-static void consume(parser *p, scanner *sc, token_type type, const char *msg)
+static void consume(Parser *p, Scanner *sc, TokenType type, const char *msg)
 {
 	if (p->current.type == type) {
 		advance(p, sc);
@@ -77,13 +77,13 @@ static void consume(parser *p, scanner *sc, token_type type, const char *msg)
 	error_at(p, &p->current, msg);
 }
 
-static void grouping(parser *p, scanner *sc)
+static void grouping(Parser *p, Scanner *sc)
 {
 	expression();
 	consume(p, sc, TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-static void number(parser *p, chunk *c)
+static void number(Parser *p, Chunk *c)
 {
 	double value = strtod(p->previous.start, NULL);
 	size_t const_idx = chunk_add_constant(c, value);
@@ -95,9 +95,9 @@ static void number(parser *p, chunk *c)
 	chunk_write(c, (uint8_t)const_idx, p->previous.line);
 }
 
-static void unary(parser *p, chunk *c)
+static void unary(Parser *p, Chunk *c)
 {
-	token_type optype = p->previous.type;
+	TokenType optype = p->previous.type;
 
 	parse_precedence(PREC_UNARY);
 
@@ -110,10 +110,10 @@ static void unary(parser *p, chunk *c)
 	}
 }
 
-static void binary(parser *p, chunk *c)
+static void binary(Parser *p, Chunk *c)
 {
-    token_type optype = p->previous.type;
-    parse_rule *rule = get_rule(optype);
+    TokenType optype = p->previous.type;
+    ParseRule *rule = get_rule(optype);
     parse_precedence((precedence)(rule->precedence + 1));
 
     switch (optype) {
@@ -134,10 +134,10 @@ static void binary(parser *p, chunk *c)
     }
 }
 
-uint8_t compile(const char *src, chunk *c)
+uint8_t compile(const char *src, Chunk *c)
 {
-	scanner sc;
-	parser p;
+	Scanner sc;
+	Parser p;
 
 	scanner_init(&sc, src);
 

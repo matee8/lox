@@ -8,7 +8,7 @@
 
 #define REPL_MAX_LINES 1024
 
-static void repl(virtual_machine *vm)
+static void repl(VirtualMachine *vm)
 {
 	char line[REPL_MAX_LINES];
 
@@ -54,10 +54,10 @@ static char *read_file(const char *path)
 	return buff;
 }
 
-static void run_file(virtual_machine *vm, const char *path)
+static void run_file(VirtualMachine *vm, const char *path)
 {
 	char *src = read_file(path);
-	interpret_result res = virtual_machine_interpret(vm, src);
+	InterpreterResult res = virtual_machine_interpret(vm, src);
 	free(src);
 	if (res == INTERPRET_COMPILE_ERROR)
 		exit(EX_DATAERR);
@@ -67,18 +67,21 @@ static void run_file(virtual_machine *vm, const char *path)
 
 int main(int argc, const char *argv[])
 {
-	virtual_machine vm;
+	VirtualMachine vm;
 
 	virtual_machine_init(&vm);
 
-	if (argc == 1) {
-		repl(&vm);
-	} else if (argc == 2) {
-		run_file(&vm, argv[1]);
-	} else {
+    switch (argc) {
+    case 1:
+        repl(&vm);
+        break;
+    case 2:
+        run_file(&vm, argv[1]);
+        break;
+    default:
 		(void)fputs("Usage: clox [path]\n", stderr);
 		exit(EX_USAGE);
-	}
+    }
 
 	return EXIT_SUCCESS;
 }
