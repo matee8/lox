@@ -29,6 +29,62 @@ typedef enum {
 	PREC_PRIMARY
 } Precedence;
 
+typedef void (*ParseFn)(Parser *p, Scanner *sc, Chunk *c);
+
+typedef struct __attribute__((aligned(32))) {
+	ParseFn prefix;
+	ParseFn infix;
+	Precedence precedence;
+} ParseRule;
+
+static void unary(Parser *p, Scanner *sc, Chunk *c);
+static void binary(Parser *p, Scanner *sc, Chunk *c);
+static void grouping(Parser *p, Scanner *sc, Chunk *c);
+static void number(Parser *p, Scanner *sc, Chunk *c);
+
+static const ParseRule rules[] = {
+	[TOKEN_LEFT_PAREN] = { grouping, NULL, PREC_NONE },
+	[TOKEN_RIGHT_PAREN] = { NULL, NULL, PREC_NONE },
+	[TOKEN_LEFT_BRACE] = { NULL, NULL, PREC_NONE },
+	[TOKEN_RIGHT_BRACE] = { NULL, NULL, PREC_NONE },
+	[TOKEN_COMMA] = { NULL, NULL, PREC_NONE },
+	[TOKEN_DOT] = { NULL, NULL, PREC_NONE },
+	[TOKEN_MINUS] = { unary, binary, PREC_TERM },
+	[TOKEN_PLUS] = { NULL, binary, PREC_TERM },
+	[TOKEN_SEMICOLON] = { NULL, NULL, PREC_NONE },
+	[TOKEN_SLASH] = { NULL, binary, PREC_FACTOR },
+	[TOKEN_STAR] = { NULL, binary, PREC_FACTOR },
+	[TOKEN_BANG] = { NULL, NULL, PREC_NONE },
+	[TOKEN_BANG_EQUAL] = { NULL, NULL, PREC_NONE },
+	[TOKEN_EQUAL] = { NULL, NULL, PREC_NONE },
+	[TOKEN_EQUAL_EQUAL] = { NULL, NULL, PREC_NONE },
+	[TOKEN_GREATER] = { NULL, NULL, PREC_NONE },
+	[TOKEN_GREATER_EQUAL] = { NULL, NULL, PREC_NONE },
+	[TOKEN_LESS] = { NULL, NULL, PREC_NONE },
+	[TOKEN_LESS_EQUAL] = { NULL, NULL, PREC_NONE },
+	[TOKEN_IDENTIFIER] = { NULL, NULL, PREC_NONE },
+	[TOKEN_STRING] = { NULL, NULL, PREC_NONE },
+	[TOKEN_NUMBER] = { number, NULL, PREC_NONE },
+	[TOKEN_AND] = { NULL, NULL, PREC_NONE },
+	[TOKEN_CLASS] = { NULL, NULL, PREC_NONE },
+	[TOKEN_ELSE] = { NULL, NULL, PREC_NONE },
+	[TOKEN_FALSE] = { NULL, NULL, PREC_NONE },
+	[TOKEN_FOR] = { NULL, NULL, PREC_NONE },
+	[TOKEN_FUN] = { NULL, NULL, PREC_NONE },
+	[TOKEN_IF] = { NULL, NULL, PREC_NONE },
+	[TOKEN_NIL] = { NULL, NULL, PREC_NONE },
+	[TOKEN_OR] = { NULL, NULL, PREC_NONE },
+	[TOKEN_PRINT] = { NULL, NULL, PREC_NONE },
+	[TOKEN_RETURN] = { NULL, NULL, PREC_NONE },
+	[TOKEN_SUPER] = { NULL, NULL, PREC_NONE },
+	[TOKEN_THIS] = { NULL, NULL, PREC_NONE },
+	[TOKEN_TRUE] = { NULL, NULL, PREC_NONE },
+	[TOKEN_VAR] = { NULL, NULL, PREC_NONE },
+	[TOKEN_WHILE] = { NULL, NULL, PREC_NONE },
+	[TOKEN_ERROR] = { NULL, NULL, PREC_NONE },
+	[TOKEN_EOF] = { NULL, NULL, PREC_NONE },
+};
+
 static void error_at(Parser *p, Token *t, const char *msg)
 {
 	if (p->panic_mode)
@@ -68,15 +124,51 @@ static void consume(Parser *p, Scanner *sc, TokenType type, const char *msg)
 	error_at(p, &p->current, msg);
 }
 
-static void parse_precedence(Precedence pr)
+static void parse_precedence(Parser *p, Scanner *sc, Chunk *c, Precedence pr)
 {
+	advance(p, sc);
+	ParseFn prefix_rule = rules[p->previous.type].prefix;
+	if (prefix_rule == NULL) {
+		error_at(p, &p->current, "Expect expression.");
+		return;
+	}
+
+	prefix_rule(p, sc, c);
+
+	while (pr <= rules[p->current.type].precedence) {
+		advance(p, sc);
+		ParseFn infix_rule = rules[p->previous.type].infix;
+		infix_rule(p, sc, c);
+	}
 }
 
-static void binary(Parser *p, Chunk *c)
+static void expression(Parser *p, Scanner *sc, Chunk *c)
 {
+	parse_precedence(p, sc, c, PREC_UNARY);
+}
+
+static void unary(Parser *p, Scanner *sc, Chunk *c)
+{
+	(void)sc;
 	TokenType optype = p->previous.type;
-	ParseRule *rule = get_rule(optype);
-	parse_precedence((precedence)(rule->precedence + 1));
+
+	parse_precedence(p, sc, c, PREC_UNARY);
+
+	switch (optype) {
+	case TOKEN_MINUS:
+		chunk_write(c, OP_NEGATE, p->previous.line);
+		break;
+	default:
+		return;
+	}
+}
+
+static void binary(Parser *p, Scanner *sc, Chunk *c)
+{
+	(void)sc;
+	TokenType optype = p->previous.type;
+	const ParseRule *rule = &rules[optype];
+	parse_precedence(p, sc, c, (Precedence)(rule->precedence + 1));
 
 	switch (optype) {
 	case TOKEN_PLUS:
@@ -96,19 +188,16 @@ static void binary(Parser *p, Chunk *c)
 	}
 }
 
-static void expression(void)
+static void grouping(Parser *p, Scanner *sc, Chunk *c)
 {
-	parse_precedence(PREC_UNARY);
-}
-
-static void grouping(Parser *p, Scanner *sc)
-{
-	expression();
+	(void)c;
+	expression(p, sc, c);
 	consume(p, sc, TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-static void number(Parser *p, Chunk *c)
+static void number(Parser *p, Scanner *sc, Chunk *c)
 {
+	(void)sc;
 	double value = strtod(p->previous.start, NULL);
 	size_t const_idx = chunk_add_constant(c, value);
 	if (const_idx > UINT8_MAX) {
@@ -117,21 +206,6 @@ static void number(Parser *p, Chunk *c)
 	}
 	chunk_write(c, OP_CONSTANT, p->previous.line);
 	chunk_write(c, (uint8_t)const_idx, p->previous.line);
-}
-
-static void unary(Parser *p, Chunk *c)
-{
-	TokenType optype = p->previous.type;
-
-	parse_precedence(PREC_UNARY);
-
-	switch (optype) {
-	case TOKEN_MINUS:
-		chunk_write(c, OP_NEGATE, p->previous.line);
-		break;
-	default:
-		return;
-	}
 }
 
 uint8_t compile(const char *src, Chunk *c)
