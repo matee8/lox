@@ -71,17 +71,17 @@ int main(int argc, const char *argv[])
 
 	virtual_machine_init(&vm);
 
-    switch (argc) {
-    case 1:
-        repl(&vm);
-        break;
-    case 2:
-        run_file(&vm, argv[1]);
-        break;
-    default:
+	switch (argc) {
+	case 1:
+		repl(&vm);
+		break;
+	case 2:
+		run_file(&vm, argv[1]);
+		break;
+	default:
 		(void)fputs("Usage: clox [path]\n", stderr);
 		exit(EX_USAGE);
-    }
+	}
 
 	return EXIT_SUCCESS;
 }

@@ -101,7 +101,7 @@ static inline void skip_whitespace(Scanner *sc)
 }
 
 static inline TokenType check_keyword(Scanner *sc, int32_t start, int32_t len,
-				       const char *rest, TokenType type)
+				      const char *rest, TokenType type)
 {
 	if (sc->current - sc->start == start + len &&
 	    memcmp(sc->start + start, rest, len) == 0)
@@ -140,8 +140,8 @@ static Token identifier(Scanner *sc)
 			case 'u':
 				type = check_keyword(sc, 2, 1, "n", TOKEN_FUN);
 				break;
-            default:
-                break;
+			default:
+				break;
 			}
 		}
 		break;
@@ -174,8 +174,8 @@ static Token identifier(Scanner *sc)
 				type = check_keyword(sc, 2, 2, "ue",
 						     TOKEN_TRUE);
 				break;
-            default:
-                break;
+			default:
+				break;
 			}
 		}
 		break;
