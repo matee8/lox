@@ -6,24 +6,24 @@
 
 #define STACK_MAX 256
 
-typedef struct {
-	chunk *chunk;
+typedef struct __attribute__((aligned(128))) {
+	Chunk *chunk;
 	uint8_t *ip;
-	value *stack_top;
-	value stack[STACK_MAX];
-} virtual_machine;
+	Value *stack_top;
+	Value stack[STACK_MAX];
+} VirtualMachine;
 
 typedef enum {
 	INTERPRET_OK,
 	INTERPRET_COMPILE_ERROR,
 	INTERPRET_RUNTIME_ERROR
-} interpret_result;
+} InterpreterResult;
 
-void virtual_machine_init(virtual_machine *vm);
-interpret_result virtual_machine_interpret(virtual_machine *vm,
+void virtual_machine_init(VirtualMachine *vm);
+InterpreterResult virtual_machine_interpret(VirtualMachine *vm,
 					   const char *src);
-void virtual_machine_push(virtual_machine *vm, value val);
-value virtual_machine_pop(virtual_machine *vm);
+void virtual_machine_push(VirtualMachine *vm, Value val);
+Value virtual_machine_pop(VirtualMachine *vm);
 // void virtual_machine_free(virtual_machine *vm);
 
 #endif

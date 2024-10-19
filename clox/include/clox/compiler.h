@@ -5,6 +5,6 @@
 
 #include "clox/chunk.h"
 
-uint8_t compile(const char *src, chunk *c);
+uint8_t compile(const char *src, Chunk *c);
 
 #endif

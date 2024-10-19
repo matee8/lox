@@ -8,12 +8,12 @@
 #include "clox/compiler.h"
 #include "clox/value.h"
 
-void virtual_machine_init(virtual_machine *vm)
+void virtual_machine_init(VirtualMachine *vm)
 {
 	vm->stack_top = vm->stack;
 }
 
-static interpret_result run(virtual_machine *vm, chunk *c)
+static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 {
 	vm->chunk = c;
 	vm->ip = &vm->chunk->codes[0];
@@ -30,18 +30,18 @@ static interpret_result run(virtual_machine *vm, chunk *c)
 #ifdef DEBUG_TRACE_EXECUTION
 #include "clox/debug.h"
 		puts("          ");
-		for (value *slot = vm->stack; slot < vm->stack_top; ++slot) {
+		for (Value *slot = vm->stack; slot < vm->stack_top; ++slot) {
 			printf("[ %f ]", *slot);
 		}
 		puts("\n");
-		(void)__debug_disassemble_instruction(
+		(void)debug_disassemble_instruction(
 			vm->chunk, (size_t)(vm->ip - vm->chunk->codes));
 #endif
 
 		uint8_t instruction = READ_BYTE();
 		switch (instruction) {
 		case OP_CONSTANT: {
-			value constant =
+			Value constant =
 				vm->chunk->constants.values[READ_BYTE()];
 			virtual_machine_push(vm, constant);
 			break;
@@ -72,9 +72,9 @@ static interpret_result run(virtual_machine *vm, chunk *c)
 #undef BINARY_OP
 }
 
-interpret_result virtual_machine_interpret(virtual_machine *vm, const char *src)
+InterpreterResult virtual_machine_interpret(VirtualMachine *vm, const char *src)
 {
-	chunk chunk;
+	Chunk chunk;
 	chunk_init(&chunk);
 
 	if (!compile(src, &chunk)) {
@@ -85,20 +85,20 @@ interpret_result virtual_machine_interpret(virtual_machine *vm, const char *src)
 	vm->chunk = &chunk;
 	vm->ip = vm->chunk->codes;
 
-	interpret_result result = run(vm, &chunk);
+	InterpreterResult result = run(vm, &chunk);
 
 	chunk_free(&chunk);
 
 	return result;
 }
 
-void virtual_machine_push(virtual_machine *vm, value val)
+void virtual_machine_push(VirtualMachine *vm, Value val)
 {
 	*vm->stack_top = val;
 	++vm->stack_top;
 }
 
-value virtual_machine_pop(virtual_machine *vm)
+Value virtual_machine_pop(VirtualMachine *vm)
 {
 	vm->stack_top--;
 	return *vm->stack_top;

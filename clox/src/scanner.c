@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-void scanner_init(scanner *sc, const char *src)
+void scanner_init(Scanner *sc, const char *src)
 {
 	sc->start = src;
 	sc->current = src;
@@ -20,30 +20,30 @@ static inline uint8_t is_alpha(char c)
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
-static inline uint8_t is_at_end(const scanner *sc)
+static inline uint8_t is_at_end(const Scanner *sc)
 {
 	return *sc->current == '\0';
 }
 
-static inline char advance(scanner *sc)
+static inline char advance(Scanner *sc)
 {
 	++sc->current;
 	return sc->current[-1];
 }
 
-static inline char peek(const scanner *sc)
+static inline char peek(const Scanner *sc)
 {
 	return *sc->current;
 }
 
-static inline char peek_next(const scanner *sc)
+static inline char peek_next(const Scanner *sc)
 {
 	if (is_at_end(sc))
 		return '\0';
 	return sc->current[1];
 }
 
-static inline uint8_t match(scanner *sc, char expected)
+static inline uint8_t match(Scanner *sc, char expected)
 {
 	if (is_at_end(sc))
 		return 0;
@@ -53,9 +53,9 @@ static inline uint8_t match(scanner *sc, char expected)
 	return 1;
 }
 
-static inline token make_token(const scanner *sc, token_type type)
+static inline Token make_token(const Scanner *sc, TokenType type)
 {
-	token t;
+	Token t;
 	t.type = type;
 	t.start = sc->start;
 	t.len = (size_t)(sc->current - sc->start);
@@ -63,9 +63,9 @@ static inline token make_token(const scanner *sc, token_type type)
 	return t;
 }
 
-static inline token error_token(const scanner *sc, const char *msg)
+static inline Token error_token(const Scanner *sc, const char *msg)
 {
-	token t;
+	Token t;
 	t.type = TOKEN_ERROR;
 	t.start = msg;
 	t.len = (size_t)strlen(msg);
@@ -73,7 +73,7 @@ static inline token error_token(const scanner *sc, const char *msg)
 	return t;
 }
 
-static inline void skip_whitespace(scanner *sc)
+static inline void skip_whitespace(Scanner *sc)
 {
 	while (1) {
 		char c = peek(sc);
@@ -100,8 +100,8 @@ static inline void skip_whitespace(scanner *sc)
 	}
 }
 
-static inline token_type check_keyword(scanner *sc, int32_t start, int32_t len,
-				       const char *rest, token_type type)
+static inline TokenType check_keyword(Scanner *sc, int32_t start, int32_t len,
+				       const char *rest, TokenType type)
 {
 	if (sc->current - sc->start == start + len &&
 	    memcmp(sc->start + start, rest, len) == 0)
@@ -110,12 +110,12 @@ static inline token_type check_keyword(scanner *sc, int32_t start, int32_t len,
 	return TOKEN_IDENTIFIER;
 }
 
-static token identifier(scanner *sc)
+static Token identifier(Scanner *sc)
 {
 	while (is_alpha(peek(sc)) || is_digit(peek(sc)))
 		advance(sc);
 
-	token_type type = TOKEN_IDENTIFIER;
+	TokenType type = TOKEN_IDENTIFIER;
 
 	switch (sc->start[0]) {
 	case 'a':
@@ -193,7 +193,7 @@ static token identifier(scanner *sc)
 	return make_token(sc, type);
 }
 
-static token string(scanner *sc)
+static Token string(Scanner *sc)
 {
 	while (peek(sc) != '"' && !is_at_end(sc)) {
 		if (peek(sc) == '\n')
@@ -208,7 +208,7 @@ static token string(scanner *sc)
 	return make_token(sc, TOKEN_STRING);
 }
 
-static token number(scanner *sc)
+static Token number(Scanner *sc)
 {
 	while (is_digit(peek(sc)))
 		advance(sc);
@@ -223,7 +223,7 @@ static token number(scanner *sc)
 	return make_token(sc, TOKEN_NUMBER);
 }
 
-token scanner_scan_token(scanner *sc)
+Token scanner_scan_token(Scanner *sc)
 {
 	skip_whitespace(sc);
 	sc->start = sc->current;
