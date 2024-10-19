@@ -2,7 +2,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #include "clox/chunk.h"
 #include "clox/compiler.h"
@@ -18,7 +17,7 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 	vm->chunk = c;
 	vm->ip = &vm->chunk->codes[0];
 
-#define READ_BYTE() (*vm->ip++)
+#define READ_BYTE() (++*vm->ip)
 #define BINARY_OP(op)                               \
 	do {                                        \
 		double b = virtual_machine_pop(vm); \
@@ -29,16 +28,16 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 	while (1) {
 #ifdef DEBUG_TRACE_EXECUTION
 #include "clox/debug.h"
-		puts("          ");
+		(void)puts("          ");
 		for (Value *slot = vm->stack; slot < vm->stack_top; ++slot) {
 			printf("[ %f ]", *slot);
 		}
-		puts("\n");
+		(void)puts("\n");
 		(void)debug_disassemble_instruction(
 			vm->chunk, (size_t)(vm->ip - vm->chunk->codes));
 #endif
 
-		uint8_t instruction = READ_BYTE();
+		OpCode instruction = READ_BYTE();
 		switch (instruction) {
 		case OP_CONSTANT: {
 			Value constant =
@@ -62,7 +61,7 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 			virtual_machine_push(vm, -virtual_machine_pop(vm));
 			break;
 		case OP_RETURN:
-			(void)printf("%f\n", virtual_machine_pop(vm));
+			value_print(virtual_machine_pop(vm));
 			return INTERPRET_OK;
 		default:
 			break;

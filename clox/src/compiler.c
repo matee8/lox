@@ -58,15 +58,6 @@ static void advance(Parser *p, Scanner *sc)
 	}
 }
 
-static void parse_precedence(Precedence pr)
-{
-}
-
-static void expression(void)
-{
-	parse_precedence(PREC_UNARY);
-}
-
 static void consume(Parser *p, Scanner *sc, TokenType type, const char *msg)
 {
 	if (p->current.type == type) {
@@ -75,6 +66,39 @@ static void consume(Parser *p, Scanner *sc, TokenType type, const char *msg)
 	}
 
 	error_at(p, &p->current, msg);
+}
+
+static void parse_precedence(Precedence pr)
+{
+}
+
+static void binary(Parser *p, Chunk *c)
+{
+	TokenType optype = p->previous.type;
+	ParseRule *rule = get_rule(optype);
+	parse_precedence((precedence)(rule->precedence + 1));
+
+	switch (optype) {
+	case TOKEN_PLUS:
+		chunk_write(c, OP_ADD, p->previous.line);
+		break;
+	case TOKEN_MINUS:
+		chunk_write(c, OP_SUBTRACT, p->previous.line);
+		break;
+	case TOKEN_STAR:
+		chunk_write(c, OP_MULTIPLY, p->previous.line);
+		break;
+	case TOKEN_SLASH:
+		chunk_write(c, OP_DIVIDE, p->previous.line);
+		break;
+	default:
+		return;
+	}
+}
+
+static void expression(void)
+{
+	parse_precedence(PREC_UNARY);
 }
 
 static void grouping(Parser *p, Scanner *sc)
@@ -108,30 +132,6 @@ static void unary(Parser *p, Chunk *c)
 	default:
 		return;
 	}
-}
-
-static void binary(Parser *p, Chunk *c)
-{
-    TokenType optype = p->previous.type;
-    ParseRule *rule = get_rule(optype);
-    parse_precedence((precedence)(rule->precedence + 1));
-
-    switch (optype) {
-    case TOKEN_PLUS:
-        chunk_write(c, OP_ADD, p->previous.line);
-        break;
-    case TOKEN_MINUS:
-        chunk_write(c, OP_SUBTRACT, p->previous.line);
-        break;
-    case TOKEN_STAR:
-        chunk_write(c, OP_MULTIPLY, p->previous.line);
-        break;
-    case TOKEN_SLASH:
-        chunk_write(c, OP_DIVIDE, p->previous.line);
-        break;
-    default:
-        return;
-    }
 }
 
 uint8_t compile(const char *src, Chunk *c)

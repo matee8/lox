@@ -24,6 +24,5 @@ InterpreterResult virtual_machine_interpret(VirtualMachine *vm,
 					   const char *src);
 void virtual_machine_push(VirtualMachine *vm, Value val);
 Value virtual_machine_pop(VirtualMachine *vm);
-// void virtual_machine_free(virtual_machine *vm);
 
 #endif
