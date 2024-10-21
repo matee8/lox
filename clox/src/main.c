@@ -8,7 +8,7 @@
 
 #define REPL_MAX_LINES 1024
 
-static void repl(VirtualMachine *vm)
+static inline void repl(VirtualMachine *vm)
 {
 	char line[REPL_MAX_LINES];
 
@@ -20,7 +20,7 @@ static void repl(VirtualMachine *vm)
 			break;
 		}
 
-		virtual_machine_interpret(vm, line);
+		(void)virtual_machine_interpret(vm, line);
 	}
 }
 
@@ -33,7 +33,7 @@ static char *read_file(const char *path)
 	}
 
 	(void)fseek(file, 0L, SEEK_END);
-	size_t file_size = ftell(file);
+	const size_t file_size = ftell(file);
 	(void)fseek(file, 0L, SEEK_SET);
 
 	char *buff = (char *)malloc(file_size + 1);
@@ -43,7 +43,7 @@ static char *read_file(const char *path)
 		exit(EX_IOERR);
 	}
 
-	size_t bytes_read = fread(buff, sizeof(char), file_size, file);
+	const size_t bytes_read = fread(buff, sizeof(char), file_size, file);
 	if (bytes_read < file_size) {
 		(void)fprintf(stderr, "Couldn't read file \"%s\".\n", path);
 		exit(EX_IOERR);
@@ -54,15 +54,16 @@ static char *read_file(const char *path)
 	return buff;
 }
 
-static void run_file(VirtualMachine *vm, const char *path)
+static inline void run_file(VirtualMachine *vm, const char *path)
 {
 	char *src = read_file(path);
 	InterpreterResult res = virtual_machine_interpret(vm, src);
 	free(src);
-	if (res == INTERPRET_COMPILE_ERROR)
+	if (res == INTERPRET_COMPILE_ERROR) {
 		exit(EX_DATAERR);
-	else if (res == INTERPRET_RUNTIME_ERROR)
+	} else if (res == INTERPRET_RUNTIME_ERROR) {
 		exit(EX_SOFTWARE);
+	}
 }
 
 int main(int argc, const char *argv[])
