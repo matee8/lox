@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 
 #include "clox/virtual_machine.h"
@@ -19,6 +20,12 @@ static inline void repl(VirtualMachine *vm)
 			(void)fputs("\n", stdout);
 			break;
 		}
+
+        if (memcmp("exit", line, 4) == 0) {
+            (void)fputs("Goodbye!\n", stdout);
+            (void)fflush(stdout);
+            exit(EXIT_SUCCESS);
+        }
 
 		(void)virtual_machine_interpret(vm, line);
 	}
