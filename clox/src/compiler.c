@@ -133,6 +133,7 @@ static void parse_precedence(Parser *p, Scanner *sc, Chunk *c, Precedence pr)
 {
 	advance(p, sc);
 	ParseFn prefix_rule = rules[p->previous.type].prefix;
+
 	if (prefix_rule == NULL) {
 		error_at(p, &p->current, "Expect expression.");
 		return;
@@ -149,7 +150,7 @@ static void parse_precedence(Parser *p, Scanner *sc, Chunk *c, Precedence pr)
 
 static void expression(Parser *p, Scanner *sc, Chunk *c)
 {
-	parse_precedence(p, sc, c, PREC_UNARY);
+	parse_precedence(p, sc, c, PREC_ASSIGNMENT);
 }
 
 static void unary(Parser *p, Scanner *sc, Chunk *c)
@@ -225,8 +226,9 @@ uint8_t compile(const char *src, Chunk *c)
 
 	advance(&p, &sc);
 	expression(&p, &sc, c);
+	(void)fflush(stdout);
 	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
-	chunk_write(c, p.previous.line, OP_RETURN);
+	chunk_write(c, OP_RETURN, p.previous.line);
 #ifdef DEBUG_PRINT_CODE
 	if (!p.had_error) {
 		debug_disassemble_chunk(c, "code");
