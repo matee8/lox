@@ -6,7 +6,6 @@
 
 #include "clox/chunk.h"
 #include "clox/compiler.h"
-#include "clox/debug.h"
 #include "clox/value.h"
 
 void virtual_machine_init(VirtualMachine *vm)
