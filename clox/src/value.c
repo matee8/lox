@@ -7,7 +7,7 @@
 
 void value_print(Value val)
 {
-	printf("%g", val);
+	(void)printf("%g", val);
 }
 
 void value_array_init(ValueArray *arr)

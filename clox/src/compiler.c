@@ -5,7 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// #define DEBUG_PRINT_CODE
+
 #include "clox/chunk.h"
+#ifdef DEBUG_PRINT_CODE
+#include "clox/debug.h"
+#endif
 #include "clox/scanner.h"
 
 typedef struct __attribute__((aligned(128))) {
@@ -93,7 +98,7 @@ static void error_at(Parser *p, Token *t, const char *msg)
 	(void)fprintf(stderr, "[line %d] Error", t->line);
 
 	if (t->type == TOKEN_EOF)
-		(void)fprintf(stderr, " at end");
+		(void)fputs(" at end", stderr);
 	else if (t->type != TOKEN_ERROR)
 		(void)fprintf(stderr, " at '%.*s'", (int32_t)t->len, t->start);
 
@@ -219,8 +224,13 @@ uint8_t compile(const char *src, Chunk *c)
 	p.panic_mode = 0;
 
 	advance(&p, &sc);
-	expression();
+	expression(&p, &sc, c);
 	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
 	chunk_write(c, p.previous.line, OP_RETURN);
+#ifdef DEBUG_PRINT_CODE
+	if (!p.had_error) {
+		debug_disassemble_chunk(c, "code");
+	}
+#endif
 	return !p.had_error;
 }
