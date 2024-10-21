@@ -19,9 +19,9 @@ static void repl(VirtualMachine *vm)
 			(void)fputs("\n", stdout);
 			break;
 		}
-	}
 
-    virtual_machine_interpret(vm, line);
+		virtual_machine_interpret(vm, line);
+	}
 }
 
 static char *read_file(const char *path)

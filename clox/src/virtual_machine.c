@@ -2,9 +2,11 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "clox/chunk.h"
 #include "clox/compiler.h"
+#include "clox/debug.h"
 #include "clox/value.h"
 
 void virtual_machine_init(VirtualMachine *vm)
@@ -62,6 +64,7 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 			break;
 		case OP_RETURN:
 			value_print(virtual_machine_pop(vm));
+			(void)fputs("\n", stdout);
 			return INTERPRET_OK;
 		default:
 			break;
