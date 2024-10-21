@@ -13,12 +13,14 @@ void virtual_machine_init(VirtualMachine *vm)
 	vm->stack_top = vm->stack;
 }
 
+static inline uint8_t read_byte(VirtualMachine *vm) {
+    return *vm->ip++;
+}
+
 static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 {
 	vm->chunk = c;
 	vm->ip = &vm->chunk->codes[0];
-
-#define READ_BYTE() (*vm->ip++)
 
 #define BINARY_OP(op)                                     \
 	do {                                              \
@@ -40,10 +42,10 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 #endif
 
 		OpCode instruction = 0;
-		switch (instruction = READ_BYTE()) {
+		switch (instruction = read_byte(vm)) {
 		case OP_CONSTANT: {
 			const Value constant =
-				vm->chunk->constants.values[READ_BYTE()];
+				vm->chunk->constants.values[read_byte(vm)];
 			virtual_machine_push(vm, constant);
 			break;
 		}
