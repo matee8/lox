@@ -7,7 +7,7 @@
 
 #include "clox/virtual_machine.h"
 
-#define REPL_MAX_LINES 1024
+const size_t REPL_MAX_LINES = 1024;
 
 static inline void repl(VirtualMachine *vm)
 {
@@ -16,16 +16,16 @@ static inline void repl(VirtualMachine *vm)
 	while (1) {
 		(void)fputs("> ", stdout);
 
-		if (!fgets(line, sizeof(line), stdin)) {
+		if (!fgets(line, (int)REPL_MAX_LINES, stdin)) {
 			(void)fputs("\n", stdout);
 			break;
 		}
 
-        if (memcmp("exit", line, 4) == 0) {
-            (void)fputs("Goodbye!\n", stdout);
-            (void)fflush(stdout);
-            exit(EXIT_SUCCESS);
-        }
+		if (memcmp("exit", line, 4) == 0) {
+			(void)fputs("Goodbye!\n", stdout);
+			(void)fflush(stdout);
+			exit(EXIT_SUCCESS);
+		}
 
 		(void)virtual_machine_interpret(vm, line);
 	}

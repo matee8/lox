@@ -20,7 +20,7 @@ void value_array_init(ValueArray *arr)
 void value_array_write(ValueArray *arr, Value val)
 {
 	if (arr->cap < arr->len + 1) {
-		arr->cap = GROW_CAP(arr->cap);
+		arr->cap = grow_capacity(arr->cap);
 		arr->values = GROW_ARR(Value, arr->values, arr->cap);
 	}
 
@@ -30,6 +30,6 @@ void value_array_write(ValueArray *arr, Value val)
 
 void value_array_free(ValueArray *arr)
 {
-	(void)FREE_ARR(Value, arr->values);
+	free_array(arr->values);
 	value_array_init(arr);
 }
