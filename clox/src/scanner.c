@@ -1,7 +1,6 @@
 #include "clox/scanner.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 void scanner_init(Scanner *sc, const char *src)
@@ -39,45 +38,48 @@ static inline char peek(const Scanner *sc)
 
 static inline char peek_next(const Scanner *sc)
 {
-	if (is_at_end(sc))
+	if (is_at_end(sc)) {
 		return '\0';
+	}
 	return sc->current[1];
 }
 
 static inline uint8_t match(Scanner *sc, char expected)
 {
-	if (is_at_end(sc))
+	if (is_at_end(sc)) {
 		return 0;
-	if (*sc->current != expected)
+	}
+	if (*sc->current != expected) {
 		return 0;
+	}
 	++sc->current;
 	return 1;
 }
 
 static inline Token make_token(const Scanner *sc, TokenType type)
 {
-	Token t;
-	t.type = type;
-	t.start = sc->start;
-	t.len = (size_t)(sc->current - sc->start);
-	t.line = sc->line;
+	const Token t = { .type = type,
+			  .start = sc->start,
+			  .len = (size_t)(sc->current - sc->start),
+			  .line = sc->line };
 	return t;
 }
 
 static inline Token error_token(const Scanner *sc, const char *msg)
 {
-	Token t;
-	t.type = TOKEN_ERROR;
-	t.start = msg;
-	t.len = (size_t)strlen(msg);
-	t.line = sc->line;
+	const Token t = {
+		.type = TOKEN_ERROR,
+		.start = msg,
+		.len = strlen(msg),
+		.line = sc->line,
+	};
 	return t;
 }
 
 static inline void skip_whitespace(Scanner *sc)
 {
-	while (1) {
-		char c = peek(sc);
+	for (;;) {
+		const char c = peek(sc);
 		switch (c) {
 		case ' ':
 		case '\r':
@@ -89,11 +91,13 @@ static inline void skip_whitespace(Scanner *sc)
 			advance(sc);
 			break;
 		case '/':
-			if (peek_next(sc) == '/')
-				while (peek(sc) != '\n' && is_at_end(sc))
+			if (peek_next(sc) == '/') {
+				while (peek(sc) != '\n' && is_at_end(sc)) {
 					advance(sc);
-			else
+				}
+			} else {
 				return;
+			}
 			break;
 		default:
 			return;
@@ -101,20 +105,23 @@ static inline void skip_whitespace(Scanner *sc)
 	}
 }
 
-static inline TokenType check_keyword(Scanner *sc, int32_t start, int32_t len,
-				      const char *rest, TokenType type)
+static inline TokenType check_keyword(const Scanner *sc, int32_t start,
+				      int32_t len, const char *rest,
+				      TokenType type)
 {
 	if (sc->current - sc->start == start + len &&
-	    memcmp(sc->start + start, rest, len) == 0)
+	    memcmp(sc->start + start, rest, len) == 0) {
 		return type;
+	}
 
 	return TOKEN_IDENTIFIER;
 }
 
 static Token identifier(Scanner *sc)
 {
-	while (is_alpha(peek(sc)) || is_digit(peek(sc)))
+	while (is_alpha(peek(sc)) || is_digit(peek(sc))) {
 		advance(sc);
+	}
 
 	TokenType type = TOKEN_IDENTIFIER;
 
@@ -197,13 +204,15 @@ static Token identifier(Scanner *sc)
 static Token string(Scanner *sc)
 {
 	while (peek(sc) != '"' && !is_at_end(sc)) {
-		if (peek(sc) == '\n')
+		if (peek(sc) == '\n') {
 			++sc->line;
+		}
 		advance(sc);
 	}
 
-	if (is_at_end(sc))
+	if (is_at_end(sc)) {
 		return error_token(sc, "Unterminated string.");
+	}
 
 	advance(sc);
 	return make_token(sc, TOKEN_STRING);
@@ -211,14 +220,16 @@ static Token string(Scanner *sc)
 
 static Token number(Scanner *sc)
 {
-	while (is_digit(peek(sc)))
+	while (is_digit(peek(sc))) {
 		advance(sc);
+	}
 
 	if (peek(sc) == '.' && is_digit(peek_next(sc))) {
 		advance(sc);
 
-		while (is_digit(peek(sc)))
+		while (is_digit(peek(sc))) {
 			advance(sc);
+		}
 	}
 
 	return make_token(sc, TOKEN_NUMBER);
@@ -229,13 +240,15 @@ Token scanner_scan_token(Scanner *sc)
 	skip_whitespace(sc);
 	sc->start = sc->current;
 
-	if (is_at_end(sc))
+	if (is_at_end(sc)) {
 		return make_token(sc, TOKEN_EOF);
+	}
 
-	char c = advance(sc);
+	const char c = advance(sc);
 
-	if (is_alpha(c))
+	if (is_alpha(c)) {
 		return identifier(sc);
+	}
 
 	switch (c) {
 	case '(':

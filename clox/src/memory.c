@@ -11,7 +11,9 @@ void *reallocate(void *ptr, size_t new_len)
 	}
 
 	void *res = realloc(ptr, new_len);
-	if (res == NULL)
+	if (res == NULL) {
 		exit(1);
+	}
+
 	return res;
 }

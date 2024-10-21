@@ -19,11 +19,12 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 	vm->ip = &vm->chunk->codes[0];
 
 #define READ_BYTE() (*vm->ip++)
-#define BINARY_OP(op)                               \
-	do {                                        \
-		double b = virtual_machine_pop(vm); \
-		double a = virtual_machine_pop(vm); \
-		virtual_machine_push(vm, a op b);   \
+
+#define BINARY_OP(op)                                     \
+	do {                                              \
+		const double b = virtual_machine_pop(vm); \
+		const double a = virtual_machine_pop(vm); \
+		virtual_machine_push(vm, a op b);         \
 	} while (0)
 
 	while (1) {
@@ -41,7 +42,7 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 		OpCode instruction = 0;
 		switch (instruction = READ_BYTE()) {
 		case OP_CONSTANT: {
-			Value constant =
+			const Value constant =
 				vm->chunk->constants.values[READ_BYTE()];
 			virtual_machine_push(vm, constant);
 			break;
@@ -69,6 +70,7 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 			break;
 		}
 	}
+
 #undef READ_BYTE
 #undef BINARY_OP
 }
@@ -86,7 +88,7 @@ InterpreterResult virtual_machine_interpret(VirtualMachine *vm, const char *src)
 	vm->chunk = &chunk;
 	vm->ip = vm->chunk->codes;
 
-	InterpreterResult result = run(vm, &chunk);
+	const InterpreterResult result = run(vm, &chunk);
 
 	chunk_free(&chunk);
 

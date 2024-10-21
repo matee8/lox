@@ -5,12 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #define DEBUG_PRINT_CODE
-
 #include "clox/chunk.h"
-#ifdef DEBUG_PRINT_CODE
-#include "clox/debug.h"
-#endif
 #include "clox/scanner.h"
 
 typedef struct __attribute__((aligned(128))) {
@@ -90,17 +85,19 @@ static const ParseRule rules[] = {
 	[TOKEN_EOF] = { NULL, NULL, PREC_NONE },
 };
 
-static void error_at(Parser *p, Token *t, const char *msg)
+static inline void error_at(Parser *p, const Token *t, const char *msg)
 {
-	if (p->panic_mode)
+	if (p->panic_mode) {
 		return;
+	}
 	p->panic_mode = 1;
 	(void)fprintf(stderr, "[line %d] Error", t->line);
 
-	if (t->type == TOKEN_EOF)
+	if (t->type == TOKEN_EOF) {
 		(void)fputs(" at end", stderr);
-	else if (t->type != TOKEN_ERROR)
+	} else if (t->type != TOKEN_ERROR) {
 		(void)fprintf(stderr, " at '%.*s'", (int32_t)t->len, t->start);
+	}
 
 	(void)fprintf(stderr, ": %s\n", msg);
 
@@ -111,15 +108,17 @@ static void advance(Parser *p, Scanner *sc)
 {
 	p->previous = p->current;
 
-	while (1) {
+	for (;;) {
 		p->current = scanner_scan_token(sc);
-		if (p->current.type != TOKEN_ERROR)
+		if (p->current.type != TOKEN_ERROR) {
 			break;
+		}
 		error_at(p, &p->current, p->current.start);
 	}
 }
 
-static void consume(Parser *p, Scanner *sc, TokenType type, const char *msg)
+static inline void consume(Parser *p, Scanner *sc, TokenType type,
+			   const char *msg)
 {
 	if (p->current.type == type) {
 		advance(p, sc);
@@ -132,7 +131,7 @@ static void consume(Parser *p, Scanner *sc, TokenType type, const char *msg)
 static void parse_precedence(Parser *p, Scanner *sc, Chunk *c, Precedence pr)
 {
 	advance(p, sc);
-	ParseFn prefix_rule = rules[p->previous.type].prefix;
+	const ParseFn prefix_rule = rules[p->previous.type].prefix;
 
 	if (prefix_rule == NULL) {
 		error_at(p, &p->current, "Expect expression.");
@@ -143,12 +142,12 @@ static void parse_precedence(Parser *p, Scanner *sc, Chunk *c, Precedence pr)
 
 	while (pr <= rules[p->current.type].precedence) {
 		advance(p, sc);
-		ParseFn infix_rule = rules[p->previous.type].infix;
+		const ParseFn infix_rule = rules[p->previous.type].infix;
 		infix_rule(p, sc, c);
 	}
 }
 
-static void expression(Parser *p, Scanner *sc, Chunk *c)
+static inline void expression(Parser *p, Scanner *sc, Chunk *c)
 {
 	parse_precedence(p, sc, c, PREC_ASSIGNMENT);
 }
@@ -156,7 +155,7 @@ static void expression(Parser *p, Scanner *sc, Chunk *c)
 static void unary(Parser *p, Scanner *sc, Chunk *c)
 {
 	(void)sc;
-	TokenType optype = p->previous.type;
+	const TokenType optype = p->previous.type;
 
 	parse_precedence(p, sc, c, PREC_UNARY);
 
@@ -172,7 +171,7 @@ static void unary(Parser *p, Scanner *sc, Chunk *c)
 static void binary(Parser *p, Scanner *sc, Chunk *c)
 {
 	(void)sc;
-	TokenType optype = p->previous.type;
+	const TokenType optype = p->previous.type;
 	const ParseRule *rule = &rules[optype];
 	parse_precedence(p, sc, c, (Precedence)(rule->precedence + 1));
 
@@ -204,7 +203,7 @@ static void grouping(Parser *p, Scanner *sc, Chunk *c)
 static void number(Parser *p, Scanner *sc, Chunk *c)
 {
 	(void)sc;
-	double value = strtod(p->previous.start, NULL);
+	const double value = strtod(p->previous.start, NULL);
 	size_t const_idx = chunk_add_constant(c, value);
 	if (const_idx > UINT8_MAX) {
 		error_at(p, &p->current, "Too many constants in one chunk.");
@@ -229,10 +228,13 @@ uint8_t compile(const char *src, Chunk *c)
 	(void)fflush(stdout);
 	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
 	chunk_write(c, OP_RETURN, p.previous.line);
+
 #ifdef DEBUG_PRINT_CODE
+#include "clox/debug.h"
 	if (!p.had_error) {
 		debug_disassemble_chunk(c, "code");
 	}
 #endif
+
 	return !p.had_error;
 }
