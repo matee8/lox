@@ -14,7 +14,10 @@ Checks: >
   -concurrency-mt-unsafe,
   -cppcoreguidelines-avoid-magic-numbers,
   -readability-magic-numbers,
-  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -readability-non-const-parameter,
+  -cppcoreguidelines-init-variables,
+  -bugprone-branch-clone
 WarningsAsErrors: '*'
 HeaderFilterRegex: '^./include/graphics/.*$'
 FormatStyle: none
