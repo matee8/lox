@@ -13,15 +13,15 @@ static void repl(VirtualMachine *vm)
 	char line[REPL_MAX_LINES];
 
 	while (1) {
-		printf("> ");
+		(void)fputs("> ", stdout);
 
 		if (!fgets(line, sizeof(line), stdin)) {
-			printf("\n");
+			(void)fputs("\n", stdout);
 			break;
 		}
 	}
 
-	virtual_machine_interpret(vm, line);
+    virtual_machine_interpret(vm, line);
 }
 
 static char *read_file(const char *path)

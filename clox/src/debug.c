@@ -48,7 +48,7 @@ size_t debug_disassemble_instruction(const Chunk *c, size_t offset)
 	case OP_RETURN:
 		return simple_instruction("OP_RETURN", offset);
 	default:
-		printf("Unknown opcode %d\n", instruction);
+		(void)printf("Unknown opcode %d\n", instruction);
 		return offset + 1;
 	}
 }

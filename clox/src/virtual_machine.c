@@ -17,7 +17,7 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 	vm->chunk = c;
 	vm->ip = &vm->chunk->codes[0];
 
-#define READ_BYTE() (++*vm->ip)
+#define READ_BYTE() (*vm->ip++)
 #define BINARY_OP(op)                               \
 	do {                                        \
 		double b = virtual_machine_pop(vm); \
@@ -30,15 +30,15 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c)
 #include "clox/debug.h"
 		(void)puts("          ");
 		for (Value *slot = vm->stack; slot < vm->stack_top; ++slot) {
-			printf("[ %f ]", *slot);
+			(void)printf("[ %f ]", *slot);
 		}
 		(void)puts("\n");
 		(void)debug_disassemble_instruction(
 			vm->chunk, (size_t)(vm->ip - vm->chunk->codes));
 #endif
 
-		OpCode instruction = READ_BYTE();
-		switch (instruction) {
+		OpCode instruction = 0;
+		switch (instruction = READ_BYTE()) {
 		case OP_CONSTANT: {
 			Value constant =
 				vm->chunk->constants.values[READ_BYTE()];
