@@ -1,7 +1,7 @@
 #include "clox/scanner.h"
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 void scanner_init(Scanner *sc, const char *src)
