@@ -7,7 +7,7 @@ use std::{
 
 use thiserror::Error;
 
-use crate::{compiler, value::Value};
+use crate::{chunk::Chunk, compiler, value::Value};
 
 #[non_exhaustive]
 #[derive(Debug, Error)]
@@ -22,9 +22,11 @@ pub enum InterpretError {
 #[error("Stack is empty.")]
 struct StackIsEmptyError;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Vm {
     stack: VecDeque<Value>,
+    chunk: Option<Chunk>,
+    ip: Option<usize>,
 }
 
 #[non_exhaustive]
@@ -42,6 +44,8 @@ impl Vm {
     pub fn new() -> Self {
         Self {
             stack: VecDeque::with_capacity(256),
+            chunk: None,
+            ip: None,
         }
     }
 
@@ -60,6 +64,7 @@ impl Vm {
 
             #[expect(
                 clippy::let_underscore_untyped,
+                clippy::let_underscore_must_use,
                 reason = "the repl doesn't care about errors."
             )]
             let _ = self.interpret(line);
@@ -83,7 +88,15 @@ impl Vm {
     where
         S: AsRef<str>,
     {
-        compiler::compile(source);
+        let chunk = Chunk::new();
+
+        if compiler::compile(source).is_err() {
+            return Err(InterpretError::Compile);
+        }
+
+        self.chunk = Some(chunk);
+        self.ip = Some(0);
+
         Ok(())
     }
 
