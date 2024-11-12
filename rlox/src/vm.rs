@@ -84,7 +84,7 @@ impl Vm {
     }
 
     #[inline]
-    pub fn interpret<S>(&mut self, source: S) -> Result<(), InterpretError>
+    fn interpret<S>(&mut self, source: S) -> Result<(), InterpretError>
     where
         S: AsRef<str>,
     {
