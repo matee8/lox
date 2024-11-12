@@ -145,6 +145,10 @@ impl<'src> Scanner<'src> {
     }
 
     fn make_token(&self, r#type: TokenType) -> Token<'src> {
+        #[expect(
+            clippy::string_slice,
+            reason = "self.start and self.current are only modified by self, so it's safe to index."
+        )]
         Token {
             r#type,
             lexeme: &self.source[self.start..self.current],
@@ -166,6 +170,10 @@ impl<'src> Scanner<'src> {
         rest: &str,
         r#type: TokenType,
     ) -> TokenType {
+        #[expect(
+            clippy::string_slice,
+            reason = "self.start and self.current are only modified by self, so it's safe to index."
+        )]
         if self.current - self.start == start + rest.len()
             && rest == &self.source[self.start + start..rest.len()]
         {

@@ -19,30 +19,35 @@ fn main() {
                 process::exit(exitcode::IOERR);
             }
         }
-        Ordering::Greater => match vm.run_file(&args[1]) {
-            Ok(()) => {}
-            Err(RunFileError::Io) => {
-                eprintln!("Failed to open or read file {}.", args[1]);
-                process::exit(exitcode::IOERR);
+        Ordering::Greater => {
+            #[expect(
+                clippy::indexing_slicing,
+                reason = "args.len() must be greater than 1 here."
+            )]
+            let file_name = &args[1];
+            match vm.run_file(file_name) {
+                Ok(()) => {}
+                Err(RunFileError::Io) => {
+                    eprintln!("Failed to open or read file {file_name}.");
+                    process::exit(exitcode::IOERR);
+                }
+                Err(RunFileError::Interpret(InterpretError::Compile)) => {
+                    eprintln!("Failed to compile file {file_name}.");
+                    process::exit(exitcode::DATAERR);
+                }
+                Err(RunFileError::Interpret(InterpretError::Runtime)) => {
+                    eprintln!(
+                        "Runtime error occured while running file {file_name}."
+                    );
+                    process::exit(exitcode::SOFTWARE);
+                }
+                Err(_) => {
+                    eprintln!(
+                        "Unexpected error happened while running file {file_name}.",
+                    );
+                    process::exit(exitcode::UNAVAILABLE);
+                }
             }
-            Err(RunFileError::Interpret(InterpretError::Compile)) => {
-                eprintln!("Failed to compile file {}.", args[1]);
-                process::exit(exitcode::DATAERR);
-            }
-            Err(RunFileError::Interpret(InterpretError::Runtime)) => {
-                eprintln!(
-                    "Runtime error occured while running file {}.",
-                    args[1]
-                );
-                process::exit(exitcode::SOFTWARE);
-            }
-            Err(_) => {
-                eprintln!(
-                    "Unexpected error happened while running file {}.",
-                    args[1]
-                );
-                process::exit(exitcode::UNAVAILABLE);
-            }
-        },
+        }
     }
 }

@@ -60,7 +60,15 @@ impl Debug for Chunk {
         for (i, instruction) in self.codes.iter().enumerate() {
             write!(f, "{i:04} ")?;
 
+            #[expect(
+                clippy::indexing_slicing,
+                reason = "self.lines can only be modified alongside self.codes, so they must have the same length."
+            )]
             let line = self.lines[i];
+            #[expect(
+                clippy::indexing_slicing,
+                reason = "self.lines can only be modified alongside self.codes, so they must have the same length. i must be greater than 1 at this point."
+            )]
             if i > 0 && line == self.lines[i - 1] {
                 write!(f, "   | ")?;
             } else {
@@ -69,6 +77,10 @@ impl Debug for Chunk {
 
             match *instruction {
                 OpCode::Constant(const_idx) => {
+                    #[expect(
+                        clippy::indexing_slicing,
+                        reason = "self.constants can only contain indexes which point to a valid constant."
+                    )]
                     let const_val = self.constants[const_idx];
                     writeln!(
                         f,
