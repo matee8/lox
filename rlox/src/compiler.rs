@@ -1,26 +1,22 @@
-use crate::scanner::{Scanner, TokenType};
+use thiserror::Error;
+
+use crate::scanner::Scanner;
+
+#[non_exhaustive]
+#[derive(Debug, Error, Clone, Copy)]
+#[error("Failed to compile code.")]
+pub struct CompilerError;
 
 #[inline]
-pub fn compile<S>(source: S)
+pub fn compile<S>(source: S) -> Result<(), CompilerError>
 where
     S: AsRef<str>,
 {
-    let mut scanner = Scanner::new(source.as_ref());
+    let mut _scanner = Scanner::new(source.as_ref());
 
-    let mut line = -1;
+    // advance();
+    // expression();
+    // consume(TokenType::Eof, "Expect end of expression.");
 
-    loop {
-        let token = scanner.scan_token();
-        if token.line == line {
-            println!("   | ");
-        } else {
-            print!("{:04} ", token.line);
-            line = token.line;
-        }
-        println!("{:2?} '{}'", token.r#type, token.lexeme);
-
-        if token.r#type == TokenType::Eof {
-            break;
-        }
-    }
+    Ok(())
 }
