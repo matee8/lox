@@ -58,6 +58,10 @@ impl Vm {
                 break Ok(());
             }
 
+            #[expect(
+                clippy::let_underscore_untyped,
+                reason = "the repl doesn't care about errors."
+            )]
             let _ = self.interpret(line);
         }
     }
