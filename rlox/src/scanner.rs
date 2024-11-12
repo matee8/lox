@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -42,14 +42,12 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug, Clone)]
 pub struct Token<'lexeme> {
     pub r#type: TokenType,
     pub lexeme: &'lexeme str,
     pub line: i32,
 }
 
-#[derive(Debug, Clone)]
 pub struct Scanner<'src> {
     pub source: &'src str,
     pub start: usize,

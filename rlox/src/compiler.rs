@@ -2,8 +2,7 @@ use thiserror::Error;
 
 use crate::scanner::Scanner;
 
-#[non_exhaustive]
-#[derive(Debug, Error, Clone, Copy)]
+#[derive(Debug, Error)]
 #[error("Failed to compile code.")]
 pub struct CompilerError;
 
