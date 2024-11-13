@@ -1,6 +1,9 @@
 use thiserror::Error;
 
-use crate::scanner::{Scanner, Token, TokenType};
+use crate::{
+    chunk::{Chunk, OpCode},
+    scanner::{Scanner, Token, TokenType},
+};
 
 struct Parser<'src> {
     current: Option<Token<'src>>,
@@ -24,6 +27,10 @@ impl<'src> Parser<'src> {
         }
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "ErrorLocation is only a compile time data, no reason to care about references."
+    )]
     fn error(&mut self, location: ErrorLocation, msg: &'src str) {
         if self.panic_mode {
             return;
@@ -36,9 +43,13 @@ impl<'src> Parser<'src> {
             ErrorLocation::Previous => &self.previous,
         };
 
-        if let Some(ref token) = token {
+        if let Some(ref token) = *token {
             eprint!("[line {}] Error", token.line);
 
+            #[expect(
+                clippy::else_if_without_else,
+                reason = "If the error is not at the end or at a specific line, we can't specify the location."
+            )]
             if token.r#type == TokenType::Eof {
                 eprint!(" at end");
             } else if token.r#type != TokenType::Error {
@@ -67,6 +78,10 @@ impl<'src> Parser<'src> {
         }
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Type argument is always constructed when calling this function, it never exists before."
+    )]
     fn consume(
         &mut self,
         scanner: &mut Scanner<'src>,
@@ -88,7 +103,7 @@ impl<'src> Parser<'src> {
 pub struct CompilerError;
 
 #[inline]
-pub fn compile<S>(source: S) -> Result<(), CompilerError>
+pub fn compile<S>(source: S, chunk: &mut Chunk) -> Result<(), CompilerError>
 where
     S: AsRef<str>,
 {
@@ -97,7 +112,13 @@ where
 
     parser.advance(&mut scanner);
     // expression();
-    // consume(TokenType::Eof, "Expect end of expression.");
+    parser.consume(&mut scanner, TokenType::Eof, "Expect end of expression.");
+
+    if let Some(previous) = parser.previous {
+        chunk.write_opcode(OpCode::Return, previous.line);
+    } else {
+        parser.had_error = true;
+    }
 
     if parser.had_error {
         Err(CompilerError)

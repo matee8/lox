@@ -88,9 +88,9 @@ impl Vm {
     where
         S: AsRef<str>,
     {
-        let chunk = Chunk::new();
+        let mut chunk = Chunk::new();
 
-        if compiler::compile(source).is_err() {
+        if compiler::compile(source, &mut chunk).is_err() {
             return Err(InterpretError::Compile);
         }
 
