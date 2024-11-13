@@ -1,6 +1,87 @@
 use thiserror::Error;
 
-use crate::scanner::Scanner;
+use crate::scanner::{Scanner, Token, TokenType};
+
+struct Parser<'src> {
+    current: Option<Token<'src>>,
+    previous: Option<Token<'src>>,
+    had_error: bool,
+    panic_mode: bool,
+}
+
+enum ErrorLocation {
+    Current,
+    Previous,
+}
+
+impl<'src> Parser<'src> {
+    const fn new() -> Self {
+        Self {
+            current: None,
+            previous: None,
+            had_error: false,
+            panic_mode: false,
+        }
+    }
+
+    fn error(&mut self, location: ErrorLocation, msg: &'src str) {
+        if self.panic_mode {
+            return;
+        }
+
+        self.panic_mode = true;
+
+        let token = match location {
+            ErrorLocation::Current => &self.current,
+            ErrorLocation::Previous => &self.previous,
+        };
+
+        if let Some(ref token) = token {
+            eprint!("[line {}] Error", token.line);
+
+            if token.r#type == TokenType::Eof {
+                eprint!(" at end");
+            } else if token.r#type != TokenType::Error {
+                eprint!(" at {}", token.lexeme);
+            }
+        } else {
+            eprint!("Error");
+        }
+
+        eprintln!(": {msg}");
+        self.had_error = true;
+    }
+
+    fn advance(&mut self, scanner: &mut Scanner<'src>) {
+        self.previous = self.current.take();
+
+        loop {
+            let current = scanner.scan_token();
+
+            if current.r#type != TokenType::Error {
+                self.current = Some(current);
+                break;
+            }
+
+            self.error(ErrorLocation::Current, current.lexeme);
+        }
+    }
+
+    fn consume(
+        &mut self,
+        scanner: &mut Scanner<'src>,
+        r#type: TokenType,
+        msg: &'src str,
+    ) {
+        if let Some(current) = self.current.as_ref() {
+            if current.r#type == r#type {
+                self.advance(scanner);
+            } else {
+                self.error(ErrorLocation::Current, msg);
+            }
+        }
+    }
+}
 
 #[derive(Debug, Error)]
 #[error("Failed to compile code.")]
@@ -11,11 +92,16 @@ pub fn compile<S>(source: S) -> Result<(), CompilerError>
 where
     S: AsRef<str>,
 {
-    let mut _scanner = Scanner::new(source.as_ref());
+    let mut scanner = Scanner::new(source.as_ref());
+    let mut parser = Parser::new();
 
-    // advance();
+    parser.advance(&mut scanner);
     // expression();
     // consume(TokenType::Eof, "Expect end of expression.");
 
-    Ok(())
+    if parser.had_error {
+        Err(CompilerError)
+    } else {
+        Ok(())
+    }
 }
