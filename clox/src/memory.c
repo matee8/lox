@@ -20,7 +20,7 @@ void *reallocate(void *ptr, size_t new_len)
 
 size_t grow_capacity(size_t old_cap)
 {
-	return old_cap < 8 ? old_cap : old_cap * 2;
+	return old_cap < 8 ? 8 : old_cap * 2;
 }
 
 void free_array(void *ptr)
