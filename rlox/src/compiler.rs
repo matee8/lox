@@ -1,3 +1,5 @@
+use core::num::ParseFloatError;
+
 use thiserror::Error;
 
 use crate::{
@@ -10,6 +12,20 @@ struct Parser<'src> {
     previous: Option<Token<'src>>,
     had_error: bool,
     panic_mode: bool,
+}
+
+enum Precedence {
+    None,
+    Assignment,
+    Or,
+    And,
+    Equality,
+    Comparison,
+    Term,
+    Factor,
+    Unary,
+    Call,
+    Primary,
 }
 
 enum ErrorLocation {
@@ -96,6 +112,49 @@ impl<'src> Parser<'src> {
             }
         }
     }
+
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Precedence argument is always constructed when calling this function, it never exists before."
+    )]
+    fn parse_precedence(&self, prcedence: Precedence) {}
+
+    fn expression(&self) {
+        self.parse_precedence(Precedence::Assignment);
+    }
+
+    fn unary(&self, chunk: &mut Chunk) {
+        if let Some(ref previous) = self.previous {
+            let op_type = &previous.r#type;
+
+            self.parse_precedence(Precedence::Unary);
+
+            match *op_type {
+                TokenType::Minus => {
+                    chunk.write_opcode(OpCode::Negate, previous.line);
+                }
+                _ => {},
+            }
+        }
+    }
+
+    fn grouping(&mut self, scanner: &mut Scanner<'src>) {
+        self.expression();
+        self.consume(
+            scanner,
+            TokenType::RightParen,
+            "Expect ')' after expression.",
+        );
+    }
+
+    fn number(&self, chunk: &mut Chunk) -> Result<(), ParseFloatError> {
+        if let Some(ref previous) = self.previous {
+            let value: f64 = previous.lexeme.parse()?;
+            chunk.write_constant(value, previous.line);
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Error)]
@@ -111,7 +170,7 @@ where
     let mut parser = Parser::new();
 
     parser.advance(&mut scanner);
-    // expression();
+    parser.expression();
     parser.consume(&mut scanner, TokenType::Eof, "Expect end of expression.");
 
     if let Some(previous) = parser.previous {
