@@ -2,8 +2,17 @@
 #define CLOX_VALUE_H
 
 #include <stddef.h>
+#include <stdint.h>
 
-typedef double Value;
+typedef enum { VAL_BOOL, VAL_NIL, VAL_NUMBER } ValueType;
+
+typedef struct {
+    ValueType type;
+    union {
+        uint8_t boolean;
+        double number;
+    } data;
+} Value;
 
 typedef struct {
     size_t len;
