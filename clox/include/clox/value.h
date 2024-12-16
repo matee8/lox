@@ -25,7 +25,7 @@ Value value_nil(void);
 Value value_bool(bool val);
 Value value_number(double val);
 bool value_as_bool(Value val);
-double value_as_double(Value val);
+double value_as_number(Value val);
 bool value_is_nil(Value val);
 bool value_is_bool(Value val);
 bool value_is_number(Value val);
