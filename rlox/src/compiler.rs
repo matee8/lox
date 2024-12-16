@@ -14,6 +14,7 @@ struct Parser<'src> {
     panic_mode: bool,
 }
 
+#[derive(PartialEq, PartialOrd, Eq, Ord)]
 enum Precedence {
     None,
     Assignment,
@@ -26,6 +27,19 @@ enum Precedence {
     Unary,
     Call,
     Primary,
+}
+
+enum ParseFn {
+    Grouping,
+    Unary,
+    Binary,
+    Number,
+}
+
+struct ParseRule {
+    prefix: Option<ParseFn>,
+    infix: Option<ParseFn>,
+    precedence: Precedence,
 }
 
 enum ErrorLocation {
@@ -117,7 +131,127 @@ impl<'src> Parser<'src> {
         clippy::needless_pass_by_value,
         reason = "Precedence argument is always constructed when calling this function, it never exists before."
     )]
-    fn parse_precedence(&self, prcedence: Precedence) {}
+    fn parse_precedence(
+        &mut self,
+        scanner: &mut Scanner<'src>,
+        chunk: &mut Chunk,
+        precedence: Precedence,
+    ) {
+        self.advance(scanner);
+        if let Some(ref previous) = self.previous {
+            let Some(prefix_rule) = Self::get_rule(&previous.r#type).prefix else {
+                self.error(ErrorLocation::Current, "Expect expression.");
+                return;
+            };
+
+            match prefix_rule {
+                ParseFn::Unary => {
+                    self.unary(chunk);
+                }
+                ParseFn::Binary => {
+                    self.binary(chunk);
+                }
+                ParseFn::Grouping => {
+                    self.grouping(scanner);
+                }
+                ParseFn::Number => {
+                    self.number(chunk);
+                }
+            }
+
+            if let Some(current) = self.current {
+                while precedence <= Self::get_rule(&current.r#type).precedence {
+                    self.advance(scanner);
+                    let infix_rule = Self::get_rule(&previous.r#type).infix;
+                    match infix_rule {
+                        Some(rule) => match rule {
+                            ParseFn::Unary => {
+                                self.unary(chunk);
+                            }
+                            ParseFn::Binary => {
+                                self.binary(chunk);
+                            }
+                            ParseFn::Grouping => {
+                                self.grouping(scanner);
+                            }
+                            ParseFn::Number => {
+                                self.number(chunk);
+                            }
+                        }
+                        None => {}
+                    }
+                }
+            }
+        }
+    }
+
+    const fn get_rule(r#type: &TokenType) -> ParseRule {
+        match *r#type {
+            TokenType::RightParen
+            | TokenType::LeftBrace
+            | TokenType::RightBrace
+            | TokenType::Comma
+            | TokenType::Dot
+            | TokenType::Semicolon
+            | TokenType::Bang
+            | TokenType::BangEqual
+            | TokenType::Equal
+            | TokenType::EqualEqual
+            | TokenType::Greater
+            | TokenType::GreaterEqual
+            | TokenType::Less
+            | TokenType::LessEqual
+            | TokenType::Identifier
+            | TokenType::String
+            | TokenType::And
+            | TokenType::Class
+            | TokenType::Else
+            | TokenType::False
+            | TokenType::For
+            | TokenType::Fun
+            | TokenType::If
+            | TokenType::Nil
+            | TokenType::Or
+            | TokenType::Print
+            | TokenType::Return
+            | TokenType::Super
+            | TokenType::This
+            | TokenType::True
+            | TokenType::Var
+            | TokenType::While
+            | TokenType::Error
+            | TokenType::Eof => ParseRule {
+                prefix: None,
+                infix: None,
+                precedence: Precedence::None,
+            },
+            TokenType::LeftParen => ParseRule {
+                prefix: Some(ParseFn::Grouping),
+                infix: None,
+                precedence: Precedence::None,
+            },
+            TokenType::Minus => ParseRule {
+                prefix: Some(ParseFn::Unary),
+                infix: Some(ParseFn::Binary),
+                precedence: Precedence::Term,
+            },
+            TokenType::Plus => ParseRule {
+                prefix: None,
+                infix: Some(ParseFn::Binary),
+                precedence: Precedence::Term,
+            },
+            TokenType::Slash | TokenType::Star => ParseRule {
+                prefix: None,
+                infix: Some(ParseFn::Binary),
+                precedence: Precedence::Factor,
+            },
+            TokenType::Number => ParseRule {
+                prefix: Some(ParseFn::Number),
+                infix: None,
+                precedence: Precedence::None,
+            },
+        }
+    }
 
     fn expression(&self) {
         self.parse_precedence(Precedence::Assignment);
@@ -133,7 +267,32 @@ impl<'src> Parser<'src> {
                 TokenType::Minus => {
                     chunk.write_opcode(OpCode::Negate, previous.line);
                 }
-                _ => {},
+                _ => {}
+            }
+        }
+    }
+
+    fn binary(&self, chunk: &mut Chunk) {
+        if let Some(ref previous) = self.previous {
+            let op_type = &previous.r#type;
+            // let rule = get_rule(op_type);
+
+            // self.parse_precedence((rule.precedence + 1) as Precedence);
+
+            match *op_type {
+                TokenType::Plus => {
+                    chunk.write_opcode(OpCode::Add, previous.line);
+                }
+                TokenType::Minus => {
+                    chunk.write_opcode(OpCode::Negate, previous.line);
+                }
+                TokenType::Star => {
+                    chunk.write_opcode(OpCode::Multiply, previous.line);
+                }
+                TokenType::Slash => {
+                    chunk.write_opcode(OpCode::Divide, previous.line);
+                }
+                _ => {}
             }
         }
     }
