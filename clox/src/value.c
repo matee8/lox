@@ -24,7 +24,7 @@ bool value_as_bool(Value val) {
     return val.data.boolean;
 }
 
-double value_as_double(Value val) {
+double value_as_number(Value val) {
     return val.data.number;
 }
 
