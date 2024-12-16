@@ -9,32 +9,32 @@
 #include "clox/scanner.h"
 
 typedef struct __attribute__((aligned(128))) {
-	Token current;
-	Token previous;
-	uint8_t had_error;
-	uint8_t panic_mode;
+    Token current;
+    Token previous;
+    uint8_t had_error;
+    uint8_t panic_mode;
 } Parser;
 
 typedef enum {
-	PREC_NONE,
-	PREC_ASSIGNMENT,
-	PREC_OR,
-	PREC_AND,
-	PREC_EQUALITY,
-	PREC_COMPARISON,
-	PREC_TERM,
-	PREC_FACTOR,
-	PREC_UNARY,
-	PREC_CALL,
-	PREC_PRIMARY
+    PREC_NONE,
+    PREC_ASSIGNMENT,
+    PREC_OR,
+    PREC_AND,
+    PREC_EQUALITY,
+    PREC_COMPARISON,
+    PREC_TERM,
+    PREC_FACTOR,
+    PREC_UNARY,
+    PREC_CALL,
+    PREC_PRIMARY
 } Precedence;
 
 typedef void (*ParseFn)(Parser *p, Scanner *sc, Chunk *c);
 
 typedef struct __attribute__((aligned(32))) {
-	ParseFn prefix;
-	ParseFn infix;
-	Precedence precedence;
+    ParseFn prefix;
+    ParseFn infix;
+    Precedence precedence;
 } ParseRule;
 
 static void unary(Parser *p, Scanner *sc, Chunk *c);
@@ -43,198 +43,188 @@ static void grouping(Parser *p, Scanner *sc, Chunk *c);
 static void number(Parser *p, Scanner *sc, Chunk *c);
 
 static const ParseRule rules[] = {
-	[TOKEN_LEFT_PAREN] = { grouping, NULL, PREC_NONE },
-	[TOKEN_RIGHT_PAREN] = { NULL, NULL, PREC_NONE },
-	[TOKEN_LEFT_BRACE] = { NULL, NULL, PREC_NONE },
-	[TOKEN_RIGHT_BRACE] = { NULL, NULL, PREC_NONE },
-	[TOKEN_COMMA] = { NULL, NULL, PREC_NONE },
-	[TOKEN_DOT] = { NULL, NULL, PREC_NONE },
-	[TOKEN_MINUS] = { unary, binary, PREC_TERM },
-	[TOKEN_PLUS] = { NULL, binary, PREC_TERM },
-	[TOKEN_SEMICOLON] = { NULL, NULL, PREC_NONE },
-	[TOKEN_SLASH] = { NULL, binary, PREC_FACTOR },
-	[TOKEN_STAR] = { NULL, binary, PREC_FACTOR },
-	[TOKEN_BANG] = { NULL, NULL, PREC_NONE },
-	[TOKEN_BANG_EQUAL] = { NULL, NULL, PREC_NONE },
-	[TOKEN_EQUAL] = { NULL, NULL, PREC_NONE },
-	[TOKEN_EQUAL_EQUAL] = { NULL, NULL, PREC_NONE },
-	[TOKEN_GREATER] = { NULL, NULL, PREC_NONE },
-	[TOKEN_GREATER_EQUAL] = { NULL, NULL, PREC_NONE },
-	[TOKEN_LESS] = { NULL, NULL, PREC_NONE },
-	[TOKEN_LESS_EQUAL] = { NULL, NULL, PREC_NONE },
-	[TOKEN_IDENTIFIER] = { NULL, NULL, PREC_NONE },
-	[TOKEN_STRING] = { NULL, NULL, PREC_NONE },
-	[TOKEN_NUMBER] = { number, NULL, PREC_NONE },
-	[TOKEN_AND] = { NULL, NULL, PREC_NONE },
-	[TOKEN_CLASS] = { NULL, NULL, PREC_NONE },
-	[TOKEN_ELSE] = { NULL, NULL, PREC_NONE },
-	[TOKEN_FALSE] = { NULL, NULL, PREC_NONE },
-	[TOKEN_FOR] = { NULL, NULL, PREC_NONE },
-	[TOKEN_FUN] = { NULL, NULL, PREC_NONE },
-	[TOKEN_IF] = { NULL, NULL, PREC_NONE },
-	[TOKEN_NIL] = { NULL, NULL, PREC_NONE },
-	[TOKEN_OR] = { NULL, NULL, PREC_NONE },
-	[TOKEN_PRINT] = { NULL, NULL, PREC_NONE },
-	[TOKEN_RETURN] = { NULL, NULL, PREC_NONE },
-	[TOKEN_SUPER] = { NULL, NULL, PREC_NONE },
-	[TOKEN_THIS] = { NULL, NULL, PREC_NONE },
-	[TOKEN_TRUE] = { NULL, NULL, PREC_NONE },
-	[TOKEN_VAR] = { NULL, NULL, PREC_NONE },
-	[TOKEN_WHILE] = { NULL, NULL, PREC_NONE },
-	[TOKEN_ERROR] = { NULL, NULL, PREC_NONE },
-	[TOKEN_EOF] = { NULL, NULL, PREC_NONE },
+    [TOKEN_LEFT_PAREN] = {grouping, NULL, PREC_NONE},
+    [TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
+    [TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_RIGHT_BRACE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_COMMA] = {NULL, NULL, PREC_NONE},
+    [TOKEN_DOT] = {NULL, NULL, PREC_NONE},
+    [TOKEN_MINUS] = {unary, binary, PREC_TERM},
+    [TOKEN_PLUS] = {NULL, binary, PREC_TERM},
+    [TOKEN_SEMICOLON] = {NULL, NULL, PREC_NONE},
+    [TOKEN_SLASH] = {NULL, binary, PREC_FACTOR},
+    [TOKEN_STAR] = {NULL, binary, PREC_FACTOR},
+    [TOKEN_BANG] = {NULL, NULL, PREC_NONE},
+    [TOKEN_BANG_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_EQUAL_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_GREATER] = {NULL, NULL, PREC_NONE},
+    [TOKEN_GREATER_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_LESS] = {NULL, NULL, PREC_NONE},
+    [TOKEN_LESS_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_IDENTIFIER] = {NULL, NULL, PREC_NONE},
+    [TOKEN_STRING] = {NULL, NULL, PREC_NONE},
+    [TOKEN_NUMBER] = {number, NULL, PREC_NONE},
+    [TOKEN_AND] = {NULL, NULL, PREC_NONE},
+    [TOKEN_CLASS] = {NULL, NULL, PREC_NONE},
+    [TOKEN_ELSE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_FALSE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_FOR] = {NULL, NULL, PREC_NONE},
+    [TOKEN_FUN] = {NULL, NULL, PREC_NONE},
+    [TOKEN_IF] = {NULL, NULL, PREC_NONE},
+    [TOKEN_NIL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_OR] = {NULL, NULL, PREC_NONE},
+    [TOKEN_PRINT] = {NULL, NULL, PREC_NONE},
+    [TOKEN_RETURN] = {NULL, NULL, PREC_NONE},
+    [TOKEN_SUPER] = {NULL, NULL, PREC_NONE},
+    [TOKEN_THIS] = {NULL, NULL, PREC_NONE},
+    [TOKEN_TRUE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_VAR] = {NULL, NULL, PREC_NONE},
+    [TOKEN_WHILE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_ERROR] = {NULL, NULL, PREC_NONE},
+    [TOKEN_EOF] = {NULL, NULL, PREC_NONE},
 };
 
-static inline void error_at(Parser *p, const Token *t, const char *msg)
-{
-	if (p->panic_mode) {
-		return;
-	}
-	p->panic_mode = 1;
-	(void)fprintf(stderr, "[line %d] Error", t->line);
+static inline void error_at(Parser *p, const Token *t, const char *msg) {
+    if (p->panic_mode) {
+        return;
+    }
+    p->panic_mode = 1;
+    (void)fprintf(stderr, "[line %d] Error", t->line);
 
-	if (t->type == TOKEN_EOF) {
-		(void)fputs(" at end", stderr);
-	} else if (t->type != TOKEN_ERROR) {
-		(void)fprintf(stderr, " at '%.*s'", (int32_t)t->len, t->start);
-	}
+    if (t->type == TOKEN_EOF) {
+        (void)fputs(" at end", stderr);
+    } else if (t->type != TOKEN_ERROR) {
+        (void)fprintf(stderr, " at '%.*s'", (int32_t)t->len, t->start);
+    }
 
-	(void)fprintf(stderr, ": %s\n", msg);
+    (void)fprintf(stderr, ": %s\n", msg);
 
-	p->had_error = 1;
+    p->had_error = 1;
 }
 
-static void advance(Parser *p, Scanner *sc)
-{
-	p->previous = p->current;
+static void advance(Parser *p, Scanner *sc) {
+    p->previous = p->current;
 
-	for (;;) {
-		p->current = scanner_scan_token(sc);
-		if (p->current.type != TOKEN_ERROR) {
-			break;
-		}
-		error_at(p, &p->current, p->current.start);
-	}
+    for (;;) {
+        p->current = scanner_scan_token(sc);
+        if (p->current.type != TOKEN_ERROR) {
+            break;
+        }
+        error_at(p, &p->current, p->current.start);
+    }
 }
 
 static inline void consume(Parser *p, Scanner *sc, TokenType type,
-			   const char *msg)
-{
-	if (p->current.type == type) {
-		advance(p, sc);
-		return;
-	}
+                           const char *msg) {
+    if (p->current.type == type) {
+        advance(p, sc);
+        return;
+    }
 
-	error_at(p, &p->current, msg);
+    error_at(p, &p->current, msg);
 }
 
-static void parse_precedence(Parser *p, Scanner *sc, Chunk *c, Precedence pr)
-{
-	advance(p, sc);
-	const ParseFn prefix_rule = rules[p->previous.type].prefix;
+static void parse_precedence(Parser *p, Scanner *sc, Chunk *c, Precedence pr) {
+    advance(p, sc);
+    const ParseFn prefix_rule = rules[p->previous.type].prefix;
 
-	if (prefix_rule == NULL) {
-		error_at(p, &p->current, "Expect expression.");
-		return;
-	}
+    if (prefix_rule == NULL) {
+        error_at(p, &p->current, "Expect expression.");
+        return;
+    }
 
-	prefix_rule(p, sc, c);
+    prefix_rule(p, sc, c);
 
-	while (pr <= rules[p->current.type].precedence) {
-		advance(p, sc);
-		const ParseFn infix_rule = rules[p->previous.type].infix;
-		infix_rule(p, sc, c);
-	}
+    while (pr <= rules[p->current.type].precedence) {
+        advance(p, sc);
+        const ParseFn infix_rule = rules[p->previous.type].infix;
+        infix_rule(p, sc, c);
+    }
 }
 
-static inline void expression(Parser *p, Scanner *sc, Chunk *c)
-{
-	parse_precedence(p, sc, c, PREC_ASSIGNMENT);
+static inline void expression(Parser *p, Scanner *sc, Chunk *c) {
+    parse_precedence(p, sc, c, PREC_ASSIGNMENT);
 }
 
-static void unary(Parser *p, Scanner *sc, Chunk *c)
-{
-	(void)sc;
-	const TokenType optype = p->previous.type;
+static void unary(Parser *p, Scanner *sc, Chunk *c) {
+    (void)sc;
+    const TokenType optype = p->previous.type;
 
-	parse_precedence(p, sc, c, PREC_UNARY);
+    parse_precedence(p, sc, c, PREC_UNARY);
 
-	switch (optype) {
-	case TOKEN_MINUS:
-		chunk_write(c, OP_NEGATE, p->previous.line);
-		break;
-	default:
-		return;
-	}
+    switch (optype) {
+        case TOKEN_MINUS:
+            chunk_write(c, OP_NEGATE, p->previous.line);
+            break;
+        default:
+            return;
+    }
 }
 
-static void binary(Parser *p, Scanner *sc, Chunk *c)
-{
-	(void)sc;
-	const TokenType optype = p->previous.type;
-	const ParseRule *rule = &rules[optype];
-	parse_precedence(p, sc, c, (Precedence)(rule->precedence + 1));
+static void binary(Parser *p, Scanner *sc, Chunk *c) {
+    (void)sc;
+    const TokenType optype = p->previous.type;
+    const ParseRule *rule = &rules[optype];
+    parse_precedence(p, sc, c, (Precedence)(rule->precedence + 1));
 
-	switch (optype) {
-	case TOKEN_PLUS:
-		chunk_write(c, OP_ADD, p->previous.line);
-		break;
-	case TOKEN_MINUS:
-		chunk_write(c, OP_SUBTRACT, p->previous.line);
-		break;
-	case TOKEN_STAR:
-		chunk_write(c, OP_MULTIPLY, p->previous.line);
-		break;
-	case TOKEN_SLASH:
-		chunk_write(c, OP_DIVIDE, p->previous.line);
-		break;
-	default:
-		return;
-	}
+    switch (optype) {
+        case TOKEN_PLUS:
+            chunk_write(c, OP_ADD, p->previous.line);
+            break;
+        case TOKEN_MINUS:
+            chunk_write(c, OP_SUBTRACT, p->previous.line);
+            break;
+        case TOKEN_STAR:
+            chunk_write(c, OP_MULTIPLY, p->previous.line);
+            break;
+        case TOKEN_SLASH:
+            chunk_write(c, OP_DIVIDE, p->previous.line);
+            break;
+        default:
+            return;
+    }
 }
 
-static void grouping(Parser *p, Scanner *sc, Chunk *c)
-{
-	(void)c;
-	expression(p, sc, c);
-	consume(p, sc, TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+static void grouping(Parser *p, Scanner *sc, Chunk *c) {
+    (void)c;
+    expression(p, sc, c);
+    consume(p, sc, TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
-static void number(Parser *p, Scanner *sc, Chunk *c)
-{
-	(void)sc;
-	const double value = strtod(p->previous.start, NULL);
-	size_t const_idx = chunk_add_constant(c, value);
-	if (const_idx > UINT8_MAX) {
-		error_at(p, &p->current, "Too many constants in one chunk.");
-		const_idx = 0;
-	}
-	chunk_write(c, OP_CONSTANT, p->previous.line);
-	chunk_write(c, (uint8_t)const_idx, p->previous.line);
+static void number(Parser *p, Scanner *sc, Chunk *c) {
+    (void)sc;
+    const double value = strtod(p->previous.start, NULL);
+    size_t const_idx = chunk_add_constant(c, value);
+    if (const_idx > UINT8_MAX) {
+        error_at(p, &p->current, "Too many constants in one chunk.");
+        const_idx = 0;
+    }
+    chunk_write(c, OP_CONSTANT, p->previous.line);
+    chunk_write(c, (uint8_t)const_idx, p->previous.line);
 }
 
-uint8_t compile(const char *src, Chunk *c)
-{
-	Scanner sc;
-	Parser p;
+uint8_t compile(const char *src, Chunk *c) {
+    Scanner sc;
+    Parser p;
 
-	scanner_init(&sc, src);
+    scanner_init(&sc, src);
 
-	p.had_error = 0;
-	p.panic_mode = 0;
+    p.had_error = 0;
+    p.panic_mode = 0;
 
-	advance(&p, &sc);
-	expression(&p, &sc, c);
-	(void)fflush(stdout);
-	consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
-	chunk_write(c, OP_RETURN, p.previous.line);
+    advance(&p, &sc);
+    expression(&p, &sc, c);
+    (void)fflush(stdout);
+    consume(&p, &sc, TOKEN_EOF, "Expect end of expression.");
+    chunk_write(c, OP_RETURN, p.previous.line);
 
 #ifdef DEBUG_PRINT_CODE
 #include "clox/debug.h"
-	if (!p.had_error) {
-		debug_disassemble_chunk(c, "code");
-	}
+    if (!p.had_error) {
+        debug_disassemble_chunk(c, "code");
+    }
 #endif
 
-	return !p.had_error;
+    return !p.had_error;
 }
