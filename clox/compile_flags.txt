@@ -5,4 +5,5 @@
 --std=c17
 -g
 -O3
+-pipe
 -Iinclude
