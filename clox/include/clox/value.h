@@ -5,7 +5,7 @@
 
 typedef double Value;
 
-typedef struct __attribute__((aligned(32))) {
+typedef struct {
     size_t len;
     size_t cap;
     Value *values;

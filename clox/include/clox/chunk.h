@@ -16,7 +16,7 @@ typedef enum {
     OP_RETURN
 } OpCode;
 
-typedef struct __attribute__((aligned(64))) {
+typedef struct {
     size_t len;
     size_t cap;
     uint8_t *codes;

@@ -47,14 +47,14 @@ typedef enum {
     TOKEN_EOF
 } TokenType;
 
-typedef struct __attribute__((aligned(32))) {
+typedef struct {
     TokenType type;
     int32_t line;
     const char *start;
     size_t len;
 } Token;
 
-typedef struct __attribute__((aligned(32))) {
+typedef struct {
     int32_t line;
     const char *start;
     const char *current;

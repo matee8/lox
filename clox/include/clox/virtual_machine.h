@@ -8,11 +8,11 @@
 
 #define STACK_MAX 256
 
-typedef struct __attribute__((aligned(128))) {
+typedef struct {
     Chunk *chunk;
     uint8_t *ip;
     Value *stack_top;
-    Value stack[STACK_MAX];
+    Value stack[256];
 } VirtualMachine;
 
 typedef enum {

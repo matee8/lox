@@ -8,7 +8,7 @@
 #include "clox/chunk.h"
 #include "clox/scanner.h"
 
-typedef struct __attribute__((aligned(128))) {
+typedef struct {
     Token current;
     Token previous;
     uint8_t had_error;
@@ -31,7 +31,7 @@ typedef enum {
 
 typedef void (*ParseFn)(Parser *p, Scanner *sc, Chunk *c);
 
-typedef struct __attribute__((aligned(32))) {
+typedef struct {
     ParseFn prefix;
     ParseFn infix;
     Precedence precedence;
