@@ -6,9 +6,9 @@
 typedef double Value;
 
 typedef struct __attribute__((aligned(32))) {
-	size_t len;
-	size_t cap;
-	Value *values;
+    size_t len;
+    size_t cap;
+    Value *values;
 } ValueArray;
 
 void value_print(Value val);

@@ -7,21 +7,21 @@
 #include "clox/value.h"
 
 typedef enum {
-	OP_CONSTANT,
-	OP_ADD,
-	OP_SUBTRACT,
-	OP_MULTIPLY,
-	OP_DIVIDE,
-	OP_NEGATE,
-	OP_RETURN
+    OP_CONSTANT,
+    OP_ADD,
+    OP_SUBTRACT,
+    OP_MULTIPLY,
+    OP_DIVIDE,
+    OP_NEGATE,
+    OP_RETURN
 } OpCode;
 
 typedef struct __attribute__((aligned(64))) {
-	size_t len;
-	size_t cap;
-	uint8_t *codes;
-	int32_t *lines;
-	ValueArray constants;
+    size_t len;
+    size_t cap;
+    uint8_t *codes;
+    int32_t *lines;
+    ValueArray constants;
 } Chunk;
 
 void chunk_init(Chunk *c);
