@@ -14,7 +14,8 @@ Checks: >
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -readability-non-const-parameter,
   -cppcoreguidelines-init-variables,
-  -bugprone-branch-clone
+  -bugprone-branch-clone,
+  -altera-struct-pack-align
 WarningsAsErrors: '*'
 HeaderFilterRegex: '^./include/graphics/.*$'
 FormatStyle: none
