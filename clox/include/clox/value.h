@@ -1,6 +1,7 @@
 #ifndef CLOX_VALUE_H
 #define CLOX_VALUE_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -9,7 +10,7 @@ typedef enum { VAL_BOOL, VAL_NIL, VAL_NUMBER } ValueType;
 typedef struct {
     ValueType type;
     union {
-        uint8_t boolean;
+        bool boolean;
         double number;
     } data;
 } Value;

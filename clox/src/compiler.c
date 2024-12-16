@@ -11,8 +11,8 @@
 typedef struct {
     Token current;
     Token previous;
-    uint8_t had_error;
-    uint8_t panic_mode;
+    bool had_error;
+    bool panic_mode;
 } Parser;
 
 typedef enum {
@@ -89,7 +89,7 @@ static inline void error_at(Parser *p, const Token *t, const char *msg) {
     if (p->panic_mode) {
         return;
     }
-    p->panic_mode = 1;
+    p->panic_mode = true;
     (void)fprintf(stderr, "[line %d] Error", t->line);
 
     if (t->type == TOKEN_EOF) {
@@ -100,7 +100,7 @@ static inline void error_at(Parser *p, const Token *t, const char *msg) {
 
     (void)fprintf(stderr, ": %s\n", msg);
 
-    p->had_error = 1;
+    p->had_error = true;
 }
 
 static void advance(Parser *p, Scanner *sc) {
@@ -204,14 +204,14 @@ static void number(Parser *p, Scanner *sc, Chunk *c) {
     chunk_write(c, (uint8_t)const_idx, p->previous.line);
 }
 
-uint8_t compile(const char *src, Chunk *c) {
+bool compile(const char *src, Chunk *c) {
     Scanner sc;
     Parser p;
 
     scanner_init(&sc, src);
 
-    p.had_error = 0;
-    p.panic_mode = 0;
+    p.had_error = false;
+    p.panic_mode = false;
 
     advance(&p, &sc);
     expression(&p, &sc, c);

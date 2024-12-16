@@ -1,5 +1,6 @@
 #include "clox/scanner.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -9,15 +10,13 @@ void scanner_init(Scanner *sc, const char *src) {
     sc->line = 1;
 }
 
-static inline uint8_t is_digit(char c) { return c >= '0' && c <= '9'; }
+static inline bool is_digit(char c) { return c >= '0' && c <= '9'; }
 
-static inline uint8_t is_alpha(char c) {
+static inline bool is_alpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
-static inline uint8_t is_at_end(const Scanner *sc) {
-    return *sc->current == '\0';
-}
+static inline bool is_at_end(const Scanner *sc) { return *sc->current == '\0'; }
 
 static inline char advance(Scanner *sc) {
     ++sc->current;
@@ -33,15 +32,15 @@ static inline char peek_next(const Scanner *sc) {
     return sc->current[1];
 }
 
-static inline uint8_t match(Scanner *sc, char expected) {
+static inline bool match(Scanner *sc, char expected) {
     if (is_at_end(sc)) {
         return 0;
     }
     if (*sc->current != expected) {
-        return 0;
+        return false;
     }
     ++sc->current;
-    return 1;
+    return true;
 }
 
 static inline Token make_token(const Scanner *sc, TokenType type) {
