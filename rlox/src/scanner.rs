@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -143,6 +143,13 @@ impl<'src> Scanner<'src> {
     }
 
     fn make_token(&self, r#type: TokenType) -> Token<'src> {
+        if matches!(r#type, TokenType::Eof) {
+            return Token {
+                r#type,
+                lexeme: "",
+                line: self.line,
+            };
+        }
         #[expect(
             clippy::string_slice,
             reason = "self.start and self.current are only modified by self, so it's safe to index."
