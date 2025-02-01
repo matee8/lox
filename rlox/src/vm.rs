@@ -1,13 +1,18 @@
+use core::ops::{Add, Div, Mul, Sub};
 use std::{
     collections::VecDeque,
     fs,
-    io::{self, Write},
+    io::{self, Write as _},
     path::Path,
 };
 
 use thiserror::Error;
 
-use crate::{chunk::Chunk, compiler, value::Value};
+use crate::{
+    chunk::{Chunk, OpCode},
+    compiler,
+    value::Value,
+};
 
 #[non_exhaustive]
 #[derive(Debug, Error)]
@@ -97,65 +102,67 @@ impl Vm {
         self.chunk = Some(chunk);
         self.ip = Some(0);
 
-        Ok(())
+        self.run()
     }
 
-    // #[inline]
-    // pub fn interpret(&mut self) -> Result<(), InterpretError> {
-    //     for code in self.chunk.codes() {
-    //         match *code {
-    //             OpCode::Constant(const_idx) => {
-    //                 let Some(constant) = self.chunk.constants().get(const_idx)
-    //                 else {
-    //                     eprintln!("Stack underflow.");
-    //                     return Err(InterpretError::Compile);
-    //                 };
-    //                 self.stack.push_back(*constant);
-    //             }
-    //             OpCode::Add => {
-    //                 if self.binary_op(Add::add).is_err() {
-    //                     eprintln!("Stack underflow.");
-    //                     return Err(InterpretError::Compile);
-    //                 }
-    //             }
-    //             OpCode::Subtract => {
-    //                 if self.binary_op(Sub::sub).is_err() {
-    //                     eprintln!("Stack underflow");
-    //                     return Err(InterpretError::Compile);
-    //                 }
-    //             }
-    //             OpCode::Multiply => {
-    //                 if self.binary_op(Mul::mul).is_err() {
-    //                     eprintln!("Stack underflow");
-    //                     return Err(InterpretError::Compile);
-    //                 }
-    //             }
-    //             OpCode::Divide => {
-    //                 if self.binary_op(Div::div).is_err() {
-    //                     eprintln!("Stack underflow");
-    //                     return Err(InterpretError::Compile);
-    //                 }
-    //             }
-    //             OpCode::Negate => {
-    //                 if let Some(val) = self.stack.pop_back() {
-    //                     self.stack.push_back(-val);
-    //                 } else {
-    //                     eprintln!("Stack underflow.");
-    //                     return Err(InterpretError::Compile);
-    //                 }
-    //             }
-    //             OpCode::Return => {
-    //                 if let Some(val) = self.stack.pop_back() {
-    //                     println!("{val}");
-    //                     return Ok(());
-    //                 }
-    //                 eprintln!("Stack underflow.");
-    //                 return Err(InterpretError::Compile);
-    //             }
-    //         }
-    //     }
-    //     Ok(())
-    // }
+    fn run(&mut self) -> Result<(), InterpretError> {
+        self.ip = Some(0);
+        if let Some(chunk) = self.chunk.take() {
+            for code in chunk.codes() {
+                match *code {
+                    OpCode::Constant(const_idx) => {
+                        let Some(constant) = chunk.constants().get(const_idx)
+                        else {
+                            eprintln!("Stack underflow.");
+                            return Err(InterpretError::Compile);
+                        };
+                        self.stack.push_back(*constant);
+                    }
+                    OpCode::Add => {
+                        if self.binary_op(Add::add).is_err() {
+                            eprintln!("Stack underflow.");
+                            return Err(InterpretError::Compile);
+                        }
+                    }
+                    OpCode::Subtract => {
+                        if self.binary_op(Sub::sub).is_err() {
+                            eprintln!("Stack underflow");
+                            return Err(InterpretError::Compile);
+                        }
+                    }
+                    OpCode::Multiply => {
+                        if self.binary_op(Mul::mul).is_err() {
+                            eprintln!("Stack underflow");
+                            return Err(InterpretError::Compile);
+                        }
+                    }
+                    OpCode::Divide => {
+                        if self.binary_op(Div::div).is_err() {
+                            eprintln!("Stack underflow");
+                            return Err(InterpretError::Compile);
+                        }
+                    }
+                    OpCode::Negate => {
+                        if let Some(val) = self.stack.pop_back() {
+                            self.stack.push_back(-val);
+                        } else {
+                            eprintln!("Stack underflow.");
+                            return Err(InterpretError::Compile);
+                        }
+                    }
+                    OpCode::Return => {
+                        if let Some(val) = self.stack.pop_back() {
+                            println!("{val}");
+                            return Ok(());
+                        }
+                        eprintln!("Stack underflow.");
+                        return Err(InterpretError::Compile);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 
     fn binary_op<T>(&mut self, op: T) -> Result<(), StackIsEmptyError>
     where

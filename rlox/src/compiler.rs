@@ -12,9 +12,11 @@ struct Parser<'src> {
     previous: Option<Token<'src>>,
     had_error: bool,
     panic_mode: bool,
+    scanner: &'src mut Scanner<'src>,
+    chunk: &'src mut Chunk,
 }
 
-#[derive(PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 enum Precedence {
     None,
     Assignment,
@@ -27,6 +29,26 @@ enum Precedence {
     Unary,
     Call,
     Primary,
+}
+
+impl Precedence {
+    #[inline]
+    #[must_use]
+    pub const fn next_level(&self) -> Option<Self> {
+        match *self {
+            Self::None => Some(Self::Assignment),
+            Self::Assignment => Some(Self::Or),
+            Self::Or => Some(Self::And),
+            Self::And => Some(Self::Equality),
+            Self::Equality => Some(Self::Comparison),
+            Self::Comparison => Some(Self::Term),
+            Self::Term => Some(Self::Factor),
+            Self::Factor => Some(Self::Unary),
+            Self::Unary => Some(Self::Call),
+            Self::Call => Some(Self::Primary),
+            Self::Primary => None,
+        }
+    }
 }
 
 enum ParseFn {
@@ -48,145 +70,8 @@ enum ErrorLocation {
 }
 
 impl<'src> Parser<'src> {
-    const fn new() -> Self {
-        Self {
-            current: None,
-            previous: None,
-            had_error: false,
-            panic_mode: false,
-        }
-    }
-
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "ErrorLocation is only a compile time data, no reason to care about references."
-    )]
-    fn error(&mut self, location: ErrorLocation, msg: &'src str) {
-        if self.panic_mode {
-            return;
-        }
-
-        self.panic_mode = true;
-
-        let token = match location {
-            ErrorLocation::Current => &self.current,
-            ErrorLocation::Previous => &self.previous,
-        };
-
-        if let Some(ref token) = *token {
-            eprint!("[line {}] Error", token.line);
-
-            #[expect(
-                clippy::else_if_without_else,
-                reason = "If the error is not at the end or at a specific line, we can't specify the location."
-            )]
-            if token.r#type == TokenType::Eof {
-                eprint!(" at end");
-            } else if token.r#type != TokenType::Error {
-                eprint!(" at {}", token.lexeme);
-            }
-        } else {
-            eprint!("Error");
-        }
-
-        eprintln!(": {msg}");
-        self.had_error = true;
-    }
-
-    fn advance(&mut self, scanner: &mut Scanner<'src>) {
-        self.previous = self.current.take();
-
-        loop {
-            let current = scanner.scan_token();
-
-            if current.r#type != TokenType::Error {
-                self.current = Some(current);
-                break;
-            }
-
-            self.error(ErrorLocation::Current, current.lexeme);
-        }
-    }
-
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "Type argument is always constructed when calling this function, it never exists before."
-    )]
-    fn consume(
-        &mut self,
-        scanner: &mut Scanner<'src>,
-        r#type: TokenType,
-        msg: &'src str,
-    ) {
-        if let Some(current) = self.current.as_ref() {
-            if current.r#type == r#type {
-                self.advance(scanner);
-            } else {
-                self.error(ErrorLocation::Current, msg);
-            }
-        }
-    }
-
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "Precedence argument is always constructed when calling this function, it never exists before."
-    )]
-    fn parse_precedence(
-        &mut self,
-        scanner: &mut Scanner<'src>,
-        chunk: &mut Chunk,
-        precedence: Precedence,
-    ) {
-        self.advance(scanner);
-        if let Some(ref previous) = self.previous {
-            let Some(prefix_rule) = Self::get_rule(&previous.r#type).prefix else {
-                self.error(ErrorLocation::Current, "Expect expression.");
-                return;
-            };
-
-            match prefix_rule {
-                ParseFn::Unary => {
-                    self.unary(chunk);
-                }
-                ParseFn::Binary => {
-                    self.binary(chunk);
-                }
-                ParseFn::Grouping => {
-                    self.grouping(scanner);
-                }
-                ParseFn::Number => {
-                    self.number(chunk);
-                }
-            }
-
-            if let Some(current) = self.current {
-                while precedence <= Self::get_rule(&current.r#type).precedence {
-                    self.advance(scanner);
-                    let infix_rule = Self::get_rule(&previous.r#type).infix;
-                    match infix_rule {
-                        Some(rule) => match rule {
-                            ParseFn::Unary => {
-                                self.unary(chunk);
-                            }
-                            ParseFn::Binary => {
-                                self.binary(chunk);
-                            }
-                            ParseFn::Grouping => {
-                                self.grouping(scanner);
-                            }
-                            ParseFn::Number => {
-                                self.number(chunk);
-                            }
-                        }
-                        None => {}
-                    }
-                }
-            }
-        }
-    }
-
-    const fn get_rule(r#type: &TokenType) -> ParseRule {
-        match *r#type {
+    const fn get_rule(r#type: TokenType) -> ParseRule {
+        match r#type {
             TokenType::RightParen
             | TokenType::LeftBrace
             | TokenType::RightBrace
@@ -253,63 +138,201 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn expression(&self) {
+    const fn new(
+        scanner: &'src mut Scanner<'src>,
+        chunk: &'src mut Chunk,
+    ) -> Self {
+        Self {
+            current: None,
+            previous: None,
+            had_error: false,
+            panic_mode: false,
+            scanner,
+            chunk,
+        }
+    }
+
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "ErrorLocation is only a compile time data, no reason to care about references."
+    )]
+    fn error(&mut self, location: ErrorLocation, msg: &'src str) {
+        if self.panic_mode {
+            return;
+        }
+
+        self.panic_mode = true;
+
+        let token = match location {
+            ErrorLocation::Current => &self.current,
+            ErrorLocation::Previous => &self.previous,
+        };
+
+        if let Some(ref token) = *token {
+            eprint!("[line {}] Error", token.line);
+
+            #[expect(
+                clippy::else_if_without_else,
+                reason = "If the error is not at the end or at a specific line, we can't specify the location."
+            )]
+            if token.r#type == TokenType::Eof {
+                eprint!(" at end");
+            } else if token.r#type != TokenType::Error {
+                eprint!(" at {}", token.lexeme);
+            }
+        } else {
+            eprint!("Error");
+        }
+
+        eprintln!(": {msg}");
+        self.had_error = true;
+    }
+
+    fn advance(&mut self) {
+        self.previous = self.current.take();
+
+        loop {
+            let current = self.scanner.scan_token();
+
+            if current.r#type != TokenType::Error {
+                self.current = Some(current);
+                break;
+            }
+
+            self.error(ErrorLocation::Current, current.lexeme);
+        }
+    }
+
+    fn consume(&mut self, r#type: TokenType, msg: &'src str) {
+        if let Some(current) = self.current.as_ref() {
+            if current.r#type == r#type {
+                self.advance();
+            } else {
+                self.error(ErrorLocation::Current, msg);
+            }
+        }
+    }
+
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Precedence argument is always constructed when calling this function, it never exists before."
+    )]
+    fn parse_precedence(&mut self, precedence: Precedence) {
+        self.advance();
+        if let Some(ref previous) = self.previous {
+            let Some(prefix_rule) = Self::get_rule(previous.r#type).prefix
+            else {
+                self.error(ErrorLocation::Current, "Expect expression.");
+                return;
+            };
+
+            match prefix_rule {
+                ParseFn::Unary => {
+                    self.unary();
+                }
+                ParseFn::Binary => {
+                    self.binary();
+                }
+                ParseFn::Grouping => {
+                    self.grouping();
+                }
+                ParseFn::Number => {
+                    if self.number().is_err() {
+                        self.error(ErrorLocation::Current, "Invalid number.");
+                    }
+                }
+            }
+
+            while let Some(ref current) = self.current {
+                let rule = Self::get_rule(current.r#type);
+                if rule.precedence < precedence {
+                    break;
+                }
+
+                self.advance();
+
+                if let Some(infix_rule) = rule.infix {
+                    match infix_rule {
+                        ParseFn::Unary => {
+                            self.unary();
+                        }
+                        ParseFn::Binary => {
+                            self.binary();
+                        }
+                        ParseFn::Grouping => {
+                            self.grouping();
+                        }
+                        ParseFn::Number => {
+                            if self.number().is_err() {
+                                self.error(
+                                    ErrorLocation::Current,
+                                    "Invalid number.",
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn expression(&mut self) {
         self.parse_precedence(Precedence::Assignment);
     }
 
-    fn unary(&self, chunk: &mut Chunk) {
+    fn unary(&mut self) {
         if let Some(ref previous) = self.previous {
-            let op_type = &previous.r#type;
+            let op_type = previous.r#type;
+            let line = previous.line;
 
             self.parse_precedence(Precedence::Unary);
 
-            match *op_type {
-                TokenType::Minus => {
-                    chunk.write_opcode(OpCode::Negate, previous.line);
-                }
-                _ => {}
+            if op_type == TokenType::Minus {
+                self.chunk.write_opcode(OpCode::Negate, line);
             }
         }
     }
 
-    fn binary(&self, chunk: &mut Chunk) {
+    fn binary(&mut self) {
         if let Some(ref previous) = self.previous {
-            let op_type = &previous.r#type;
-            // let rule = get_rule(op_type);
+            let op_type = previous.r#type;
+            let rule = Self::get_rule(op_type);
+            let line = previous.line;
 
-            // self.parse_precedence((rule.precedence + 1) as Precedence);
+            let Some(next_level) = rule.precedence.next_level() else {
+                self.error(ErrorLocation::Current, "???");
+                return;
+            };
 
-            match *op_type {
+            self.parse_precedence(next_level);
+
+            match op_type {
                 TokenType::Plus => {
-                    chunk.write_opcode(OpCode::Add, previous.line);
+                    self.chunk.write_opcode(OpCode::Add, line);
                 }
                 TokenType::Minus => {
-                    chunk.write_opcode(OpCode::Negate, previous.line);
+                    self.chunk.write_opcode(OpCode::Subtract, line);
                 }
                 TokenType::Star => {
-                    chunk.write_opcode(OpCode::Multiply, previous.line);
+                    self.chunk.write_opcode(OpCode::Multiply, line);
                 }
                 TokenType::Slash => {
-                    chunk.write_opcode(OpCode::Divide, previous.line);
+                    self.chunk.write_opcode(OpCode::Divide, line);
                 }
                 _ => {}
             }
         }
     }
 
-    fn grouping(&mut self, scanner: &mut Scanner<'src>) {
+    fn grouping(&mut self) {
         self.expression();
-        self.consume(
-            scanner,
-            TokenType::RightParen,
-            "Expect ')' after expression.",
-        );
+        self.consume(TokenType::RightParen, "Expect ')' after expression.");
     }
 
-    fn number(&self, chunk: &mut Chunk) -> Result<(), ParseFloatError> {
+    fn number(&mut self) -> Result<(), ParseFloatError> {
         if let Some(ref previous) = self.previous {
             let value: f64 = previous.lexeme.parse()?;
-            chunk.write_constant(value, previous.line);
+            self.chunk.write_constant(value, previous.line);
         }
 
         Ok(())
@@ -326,14 +349,14 @@ where
     S: AsRef<str>,
 {
     let mut scanner = Scanner::new(source.as_ref());
-    let mut parser = Parser::new();
+    let mut parser = Parser::new(&mut scanner, chunk);
 
-    parser.advance(&mut scanner);
+    parser.advance();
     parser.expression();
-    parser.consume(&mut scanner, TokenType::Eof, "Expect end of expression.");
+    parser.consume(TokenType::Eof, "Expect end of expression.");
 
     if let Some(previous) = parser.previous {
-        chunk.write_opcode(OpCode::Return, previous.line);
+        parser.chunk.write_opcode(OpCode::Return, previous.line);
     } else {
         parser.had_error = true;
     }
