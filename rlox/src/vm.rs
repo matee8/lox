@@ -70,7 +70,7 @@ impl Vm {
             #[expect(
                 clippy::let_underscore_untyped,
                 clippy::let_underscore_must_use,
-                reason = "the repl doesn't care about errors."
+                reason = "The repl doesn't care about errors."
             )]
             let _ = self.interpret(line);
         }
@@ -95,7 +95,7 @@ impl Vm {
     {
         let mut chunk = Chunk::new();
 
-        if compiler::compile(source, &mut chunk).is_err() {
+        if compiler::compile(source.as_ref(), &mut chunk).is_err() {
             return Err(InterpretError::Compile);
         }
 
