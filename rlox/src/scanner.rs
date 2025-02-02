@@ -68,6 +68,7 @@ impl<'src> Scanner<'src> {
         }
     }
 
+    #[must_use]
     #[inline]
     pub fn scan_token(&mut self) -> Token<'src> {
         self.skip_whitespace();

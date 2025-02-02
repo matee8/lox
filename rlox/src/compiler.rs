@@ -21,9 +21,7 @@ enum Precedence {
 }
 
 impl Precedence {
-    #[inline]
-    #[must_use]
-    pub const fn next_level(&self) -> Option<Self> {
+    const fn next_level(&self) -> Option<Self> {
         match *self {
             Self::None => Some(Self::Assignment),
             Self::Assignment => Some(Self::Or),
