@@ -175,7 +175,7 @@ impl<'src> Parser<'src> {
                 clippy::else_if_without_else,
                 reason = "If the error is not at the end or at a specific line, we can't specify the location."
             )]
-            if token.r#type == TokenType::Eof {
+            if matches!(token.r#type, TokenType::Eof) {
                 eprint!(" at end");
             } else if token.r#type != TokenType::Error {
                 eprint!(" at {}", token.lexeme);
@@ -287,7 +287,7 @@ impl<'src> Parser<'src> {
 
             self.parse_precedence(Precedence::Unary);
 
-            if op_type == TokenType::Minus {
+            if matches!(op_type, TokenType::Minus) {
                 self.chunk.write_opcode(OpCode::Negate, line);
             }
         }
