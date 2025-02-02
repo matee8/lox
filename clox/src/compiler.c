@@ -7,6 +7,7 @@
 
 #include "clox/chunk.h"
 #include "clox/scanner.h"
+#include "clox/value.h"
 
 typedef struct {
     Token current;
@@ -195,7 +196,7 @@ static void grouping(Parser *p, Scanner *sc, Chunk *c) {
 static void number(Parser *p, Scanner *sc, Chunk *c) {
     (void)sc;
     const double value = strtod(p->previous.start, NULL);
-    size_t const_idx = chunk_add_constant(c, value);
+    size_t const_idx = chunk_add_constant(c, value_number(value));
     if (const_idx > UINT8_MAX) {
         error_at(p, &p->current, "Too many constants in one chunk.");
         const_idx = 0;
