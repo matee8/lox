@@ -42,6 +42,7 @@ static void unary(Parser *p, Scanner *sc, Chunk *c);
 static void binary(Parser *p, Scanner *sc, Chunk *c);
 static void grouping(Parser *p, Scanner *sc, Chunk *c);
 static void number(Parser *p, Scanner *sc, Chunk *c);
+static void literal(Parser *p, Scanner *sc, Chunk *c);
 
 static const ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, NULL, PREC_NONE},
@@ -55,31 +56,31 @@ static const ParseRule rules[] = {
     [TOKEN_SEMICOLON] = {NULL, NULL, PREC_NONE},
     [TOKEN_SLASH] = {NULL, binary, PREC_FACTOR},
     [TOKEN_STAR] = {NULL, binary, PREC_FACTOR},
-    [TOKEN_BANG] = {NULL, NULL, PREC_NONE},
-    [TOKEN_BANG_EQUAL] = {NULL, NULL, PREC_NONE},
-    [TOKEN_EQUAL] = {NULL, NULL, PREC_NONE},
-    [TOKEN_EQUAL_EQUAL] = {NULL, NULL, PREC_NONE},
-    [TOKEN_GREATER] = {NULL, NULL, PREC_NONE},
-    [TOKEN_GREATER_EQUAL] = {NULL, NULL, PREC_NONE},
-    [TOKEN_LESS] = {NULL, NULL, PREC_NONE},
-    [TOKEN_LESS_EQUAL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_BANG] = {unary, NULL, PREC_EQUALITY},
+    [TOKEN_BANG_EQUAL] = {NULL, binary, PREC_COMPARISON},
+    [TOKEN_EQUAL] = {NULL, binary, PREC_COMPARISON},
+    [TOKEN_EQUAL_EQUAL] = {NULL, binary, PREC_COMPARISON},
+    [TOKEN_GREATER] = {NULL, binary, PREC_COMPARISON},
+    [TOKEN_GREATER_EQUAL] = {NULL, binary, PREC_COMPARISON},
+    [TOKEN_LESS] = {NULL, binary, PREC_COMPARISON},
+    [TOKEN_LESS_EQUAL] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_IDENTIFIER] = {NULL, NULL, PREC_NONE},
     [TOKEN_STRING] = {NULL, NULL, PREC_NONE},
     [TOKEN_NUMBER] = {number, NULL, PREC_NONE},
     [TOKEN_AND] = {NULL, NULL, PREC_NONE},
     [TOKEN_CLASS] = {NULL, NULL, PREC_NONE},
     [TOKEN_ELSE] = {NULL, NULL, PREC_NONE},
-    [TOKEN_FALSE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_FALSE] = {literal, NULL, PREC_NONE},
     [TOKEN_FOR] = {NULL, NULL, PREC_NONE},
     [TOKEN_FUN] = {NULL, NULL, PREC_NONE},
     [TOKEN_IF] = {NULL, NULL, PREC_NONE},
-    [TOKEN_NIL] = {NULL, NULL, PREC_NONE},
+    [TOKEN_NIL] = {literal, NULL, PREC_NONE},
     [TOKEN_OR] = {NULL, NULL, PREC_NONE},
     [TOKEN_PRINT] = {NULL, NULL, PREC_NONE},
     [TOKEN_RETURN] = {NULL, NULL, PREC_NONE},
     [TOKEN_SUPER] = {NULL, NULL, PREC_NONE},
     [TOKEN_THIS] = {NULL, NULL, PREC_NONE},
-    [TOKEN_TRUE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_TRUE] = {literal, NULL, PREC_NONE},
     [TOKEN_VAR] = {NULL, NULL, PREC_NONE},
     [TOKEN_WHILE] = {NULL, NULL, PREC_NONE},
     [TOKEN_ERROR] = {NULL, NULL, PREC_NONE},
@@ -155,6 +156,9 @@ static void unary(Parser *p, Scanner *sc, Chunk *c) {
     parse_precedence(p, sc, c, PREC_UNARY);
 
     switch (optype) {
+        case TOKEN_BANG:
+            chunk_write(c, OP_NOT, p->previous.line);
+            break;
         case TOKEN_MINUS:
             chunk_write(c, OP_NEGATE, p->previous.line);
             break;
@@ -170,6 +174,27 @@ static void binary(Parser *p, Scanner *sc, Chunk *c) {
     parse_precedence(p, sc, c, (Precedence)(rule->precedence + 1));
 
     switch (optype) {
+        case TOKEN_BANG_EQUAL:
+            chunk_write(c, OP_EQUAL, p->previous.line);
+            chunk_write(c, OP_NOT, p->previous.line);
+            break;
+        case TOKEN_EQUAL_EQUAL:
+            chunk_write(c, OP_EQUAL, p->previous.line);
+            break;
+        case TOKEN_GREATER:
+            chunk_write(c, OP_GREATER, p->previous.line);
+            break;
+        case TOKEN_GREATER_EQUAL:
+            chunk_write(c, OP_LESS, p->previous.line);
+            chunk_write(c, OP_NOT, p->previous.line);
+            break;
+        case TOKEN_LESS:
+            chunk_write(c, OP_LESS, p->previous.line);
+            break;
+        case TOKEN_LESS_EQUAL:
+            chunk_write(c, OP_GREATER, p->previous.line);
+            chunk_write(c, OP_NOT, p->previous.line);
+            break;
         case TOKEN_PLUS:
             chunk_write(c, OP_ADD, p->previous.line);
             break;
@@ -203,6 +228,23 @@ static void number(Parser *p, Scanner *sc, Chunk *c) {
     }
     chunk_write(c, OP_CONSTANT, p->previous.line);
     chunk_write(c, (uint8_t)const_idx, p->previous.line);
+}
+
+static void literal(Parser *p, Scanner *sc, Chunk *c) {
+    (void)sc;
+    switch (p->previous.type) {
+        case TOKEN_TRUE:
+            chunk_write(c, OP_TRUE, p->previous.line);
+            break;
+        case TOKEN_FALSE:
+            chunk_write(c, OP_FALSE, p->previous.line);
+            break;
+        case TOKEN_NIL:
+            chunk_write(c, OP_NIL, p->previous.line);
+            break;
+        default:
+            return;
+    }
 }
 
 bool compile(const char *src, Chunk *c) {
