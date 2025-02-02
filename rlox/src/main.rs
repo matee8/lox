@@ -22,7 +22,7 @@ fn main() {
         Ordering::Greater => {
             #[expect(
                 clippy::indexing_slicing,
-                reason = "args.len() must be greater than 1 here."
+                reason = "`Ordering::Greater` ensures `args.len()` >= 2"
             )]
             let file_name = &args[1];
             match vm.run_file(file_name) {

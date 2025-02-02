@@ -194,13 +194,9 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
         }
     }
 
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "Precedence argument is always constructed when calling this function, it never exists before."
-    )]
     fn parse_precedence(
         &mut self,
-        precedence: Precedence,
+        precedence: &Precedence,
     ) -> Result<(), ParserError<'src>> {
         self.advance()?;
         let mut state = ParseState::Prefix;
@@ -235,7 +231,7 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
 
                     let rule = Self::get_rule(current.r#type);
 
-                    if rule.precedence < precedence {
+                    if rule.precedence < *precedence {
                         state = ParseState::Done;
                         continue;
                     }
@@ -260,7 +256,7 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
     }
 
     fn expression(&mut self) -> Result<(), ParserError<'src>> {
-        self.parse_precedence(Precedence::Assignment)
+        self.parse_precedence(&Precedence::Assignment)
     }
 
     fn unary(&mut self) -> Result<(), ParserError<'src>> {
@@ -271,7 +267,7 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
         let op_type = previous.r#type;
         let line = previous.line;
 
-        self.parse_precedence(Precedence::Unary)?;
+        self.parse_precedence(&Precedence::Unary)?;
 
         if matches!(op_type, TokenType::Minus) {
             self.chunk.write_opcode(OpCode::Negate, line);
@@ -294,7 +290,7 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
                 msg: "Missing next precedence level.",
             })?;
 
-        self.parse_precedence(next_precedence)?;
+        self.parse_precedence(&next_precedence)?;
 
         match op_type {
             TokenType::Plus => {
@@ -328,7 +324,9 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
 
         #[expect(
             clippy::map_err_ignore,
-            reason = "We throw away the specific error to display a general error message to the user."
+            reason = r#"
+                Specific parse errors contain details not usefor for end users.
+            "#
         )]
         let value: f64 =
             previous.lexeme.parse().map_err(|_| ParserError::AtToken {
