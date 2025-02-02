@@ -2,7 +2,6 @@ use core::fmt::{self, Debug, Formatter};
 
 use crate::value::Value;
 
-#[non_exhaustive]
 pub enum OpCode {
     Constant(usize),
     Add,
