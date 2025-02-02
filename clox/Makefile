@@ -5,7 +5,7 @@ INC_DIR = include
 OBJ_DIR = obj
 BUILD_DIR = build
 
-CC = gcc
+CC = clang
 CFLAGS = -Wall -Werror -Wextra -pedantic --std=c17 -g -O3 -I$(INC_DIR)
 
 SRC = $(shell find $(SRC_DIR) -name '*.c')

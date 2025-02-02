@@ -6,7 +6,7 @@
 #include "clox/memory.h"
 
 Value value_nil(void) {
-    Value res = {.type = VAL_NIL, .data = NULL};
+    Value res = {.type = VAL_NIL, .data = {0}};
     return res;
 }
 
@@ -20,27 +20,17 @@ Value value_number(double val) {
     return res;
 }
 
-bool value_as_bool(Value val) {
-    return val.data.boolean;
-}
+bool value_as_bool(Value val) { return val.data.boolean; }
 
-double value_as_number(Value val) {
-    return val.data.number;
-}
+double value_as_number(Value val) { return val.data.number; }
 
-bool value_is_nil(Value val) {
-    return val.type == VAL_NIL;
-}
+bool value_is_nil(Value val) { return val.type == VAL_NIL; }
 
-bool value_is_bool(Value val) {
-    return val.type == VAL_BOOL;
-}
+bool value_is_bool(Value val) { return val.type == VAL_BOOL; }
 
-bool value_is_number(Value val) {
-    return val.type == VAL_NUMBER;
-}
+bool value_is_number(Value val) { return val.type == VAL_NUMBER; }
 
-void value_print(Value val) { (void)printf("%g", val); }
+void value_print(Value val) { (void)printf("%g", value_as_number(val)); }
 
 void value_array_init(ValueArray *arr) {
     arr->len = 0;

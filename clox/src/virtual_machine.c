@@ -1,5 +1,6 @@
 #include "clox/virtual_machine.h"
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -13,18 +14,44 @@ void virtual_machine_init(VirtualMachine *vm) { vm->stack_top = vm->stack; }
 
 static inline uint8_t read_byte(VirtualMachine *vm) { return *vm->ip++; }
 
+static inline Value peek(VirtualMachine *vm, uint8_t distance) {
+    return vm->stack_top[-1 - distance];
+}
+
+static inline void runtime_error(VirtualMachine *vm, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    (void)vfprintf(stderr, format, args);
+    va_end(args);
+    (void)fputs("\n", stderr);
+
+    size_t instruction = vm->ip - vm->chunk->codes - 1;
+    int32_t line = vm->chunk->lines[instruction];
+    (void)fprintf(stderr, "[line %d] in script\n", line);
+}
+
+static inline InterpreterResult handle_binary_op(VirtualMachine *vm,
+                                                 double (*op)(double, double)) {
+    if (!value_is_number(peek(vm, 0)) || !value_is_number(peek(vm, 1))) {
+        runtime_error(vm, "Operands must be numbers.");
+        return INTERPRET_RUNTIME_ERROR;
+    }
+    const double b = value_as_number(virtual_machine_pop(vm));
+    const double a = value_as_number(virtual_machine_pop(vm));
+    virtual_machine_push(vm, value_number(op(a, b)));
+    return INTERPRET_OK;
+}
+
+static inline double add_op(double a, double b) { return a + b; }
+static inline double subtract_op(double a, double b) { return a - b; }
+static inline double multiply_op(double a, double b) { return a * b; }
+static inline double divide_op(double a, double b) { return a / b; }
+
 static InterpreterResult run(VirtualMachine *vm, Chunk *c) {
     vm->chunk = c;
     vm->ip = &vm->chunk->codes[0];
 
-#define BINARY_OP(op)                             \
-    do {                                          \
-        const double b = virtual_machine_pop(vm); \
-        const double a = virtual_machine_pop(vm); \
-        virtual_machine_push(vm, a op b);         \
-    } while (0)
-
-    while (1) {
+    while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
 #include "clox/debug.h"
         (void)puts("          ");
@@ -44,19 +71,33 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c) {
                 break;
             }
             case OP_ADD:
-                BINARY_OP(+);
+                if (handle_binary_op(vm, add_op) != INTERPRET_OK) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 break;
             case OP_SUBTRACT:
-                BINARY_OP(-);
+                if (handle_binary_op(vm, subtract_op) != INTERPRET_OK) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 break;
             case OP_MULTIPLY:
-                BINARY_OP(*);
+                if (handle_binary_op(vm, multiply_op) != INTERPRET_OK) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 break;
             case OP_DIVIDE:
-                BINARY_OP(/);
+                if (handle_binary_op(vm, divide_op) != INTERPRET_OK) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
                 break;
             case OP_NEGATE:
-                virtual_machine_push(vm, -virtual_machine_pop(vm));
+                if (value_is_number(peek(vm, 0))) {
+                    runtime_error(vm, "Operand must be a number.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                virtual_machine_push(
+                    vm,
+                    value_number(-value_as_number(virtual_machine_pop(vm))));
                 break;
             case OP_RETURN:
                 value_print(virtual_machine_pop(vm));

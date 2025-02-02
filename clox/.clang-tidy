@@ -17,5 +17,5 @@ Checks: >
   -bugprone-branch-clone,
   -altera-struct-pack-align
 WarningsAsErrors: '*'
-HeaderFilterRegex: '^./include/graphics/.*$'
+HeaderFilterRegex: '^./include/clox/.*$'
 FormatStyle: none

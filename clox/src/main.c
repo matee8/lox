@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -12,7 +13,7 @@ const size_t REPL_MAX_LINES = 1024;
 static inline void repl(VirtualMachine *vm) {
     char line[REPL_MAX_LINES];
 
-    while (1) {
+    while (true) {
         (void)fputs("> ", stdout);
 
         if (!fgets(line, (int)REPL_MAX_LINES, stdin)) {
