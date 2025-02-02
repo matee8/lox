@@ -79,6 +79,57 @@ struct Parser<'src, 'scanner> {
 }
 
 impl<'src, 'scanner> Parser<'src, 'scanner> {
+    #[expect(
+        clippy::as_conversions,
+        clippy::indexing_slicing,
+        reason = r#"
+            `TokenType` discriminants are contiguous from 0, and `rules` array
+            length exactly matches the number of `TokenType` variants.
+        "#
+    )]
+    const LOOKUP_RULES: [ParseRule; 40] = {
+        const DEFAULT: ParseRule = ParseRule {
+            prefix: None,
+            infix: None,
+            precedence: Precedence::None,
+        };
+
+        let mut rules = [DEFAULT; TokenType::Eof as usize + 1];
+
+        rules[TokenType::LeftParen as usize] = ParseRule {
+            prefix: Some(ParseFn::Grouping),
+            infix: None,
+            precedence: Precedence::None,
+        };
+        rules[TokenType::Minus as usize] = ParseRule {
+            prefix: Some(ParseFn::Unary),
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Term,
+        };
+        rules[TokenType::Plus as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Term,
+        };
+        rules[TokenType::Slash as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Factor,
+        };
+        rules[TokenType::Star as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Factor,
+        };
+        rules[TokenType::Number as usize] = ParseRule {
+            prefix: Some(ParseFn::Number),
+            infix: None,
+            precedence: Precedence::None,
+        };
+
+        rules
+    };
+
     const fn new(
         scanner: &'scanner mut Scanner<'src>,
         chunk: &'src mut Chunk,
@@ -91,72 +142,16 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
         }
     }
 
-    const fn get_rule(r#type: TokenType) -> ParseRule {
-        match r#type {
-            TokenType::RightParen
-            | TokenType::LeftBrace
-            | TokenType::RightBrace
-            | TokenType::Comma
-            | TokenType::Dot
-            | TokenType::Semicolon
-            | TokenType::Bang
-            | TokenType::BangEqual
-            | TokenType::Equal
-            | TokenType::EqualEqual
-            | TokenType::Greater
-            | TokenType::GreaterEqual
-            | TokenType::Less
-            | TokenType::LessEqual
-            | TokenType::Identifier
-            | TokenType::String
-            | TokenType::And
-            | TokenType::Class
-            | TokenType::Else
-            | TokenType::False
-            | TokenType::For
-            | TokenType::Fun
-            | TokenType::If
-            | TokenType::Nil
-            | TokenType::Or
-            | TokenType::Print
-            | TokenType::Return
-            | TokenType::Super
-            | TokenType::This
-            | TokenType::True
-            | TokenType::Var
-            | TokenType::While
-            | TokenType::Error
-            | TokenType::Eof => ParseRule {
-                prefix: None,
-                infix: None,
-                precedence: Precedence::None,
-            },
-            TokenType::LeftParen => ParseRule {
-                prefix: Some(ParseFn::Grouping),
-                infix: None,
-                precedence: Precedence::None,
-            },
-            TokenType::Minus => ParseRule {
-                prefix: Some(ParseFn::Unary),
-                infix: Some(ParseFn::Binary),
-                precedence: Precedence::Term,
-            },
-            TokenType::Plus => ParseRule {
-                prefix: None,
-                infix: Some(ParseFn::Binary),
-                precedence: Precedence::Term,
-            },
-            TokenType::Slash | TokenType::Star => ParseRule {
-                prefix: None,
-                infix: Some(ParseFn::Binary),
-                precedence: Precedence::Factor,
-            },
-            TokenType::Number => ParseRule {
-                prefix: Some(ParseFn::Number),
-                infix: None,
-                precedence: Precedence::None,
-            },
-        }
+    #[expect(
+        clippy::indexing_slicing,
+        reason = r#"
+             `LOOKUP_RULES` array size is explicitly set to the number of
+             `TokenType` discriminant values. All enum variants are covered
+             in array initialization.
+        "#
+    )]
+    const fn get_rule(r#type: TokenType) -> &'static ParseRule {
+        &Self::LOOKUP_RULES[r#type as usize]
     }
 
     fn advance(&mut self) -> Result<(), ParserError<'src>> {
@@ -219,12 +214,12 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
                         })?;
                     let rule = Self::get_rule(previous.r#type);
                     let prefix_rule =
-                        rule.prefix.ok_or(ParserError::AtToken {
+                        rule.prefix.as_ref().ok_or(ParserError::AtToken {
                             line: previous.line,
                             location: previous.lexeme,
                             msg: "Expect expression.",
                         })?;
-                    match prefix_rule {
+                    match *prefix_rule {
                         ParseFn::Unary => self.unary()?,
                         ParseFn::Binary => self.binary()?,
                         ParseFn::Grouping => self.grouping()?,
@@ -247,12 +242,12 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
 
                     self.advance()?;
 
-                    let Some(infix_rule) = rule.infix else {
+                    let Some(infix_rule) = rule.infix.as_ref() else {
                         state = ParseState::Done;
                         continue;
                     };
 
-                    match infix_rule {
+                    match *infix_rule {
                         ParseFn::Unary => self.unary()?,
                         ParseFn::Binary => self.binary()?,
                         ParseFn::Grouping => self.grouping()?,

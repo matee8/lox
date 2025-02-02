@@ -1,4 +1,5 @@
 #[derive(PartialEq, Eq, Clone, Copy)]
+#[repr(u32)]
 pub enum TokenType {
     LeftParen,
     RightParen,
