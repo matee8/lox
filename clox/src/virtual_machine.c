@@ -18,6 +18,10 @@ static inline Value peek(VirtualMachine *vm, uint8_t distance) {
     return vm->stack_top[-1 - distance];
 }
 
+static inline bool is_falsey(Value val) {
+    return value_is_nil(val) || (value_is_bool(val) && !value_as_bool(val));
+}
+
 static inline void runtime_error(VirtualMachine *vm, const char *format, ...) {
     va_list args;
     va_start(args, format);
@@ -31,21 +35,29 @@ static inline void runtime_error(VirtualMachine *vm, const char *format, ...) {
 }
 
 static inline InterpreterResult handle_binary_op(VirtualMachine *vm,
-                                                 double (*op)(double, double)) {
+                                                 Value (*op)(double, double)) {
     if (!value_is_number(peek(vm, 0)) || !value_is_number(peek(vm, 1))) {
         runtime_error(vm, "Operands must be numbers.");
         return INTERPRET_RUNTIME_ERROR;
     }
     const double b = value_as_number(virtual_machine_pop(vm));
     const double a = value_as_number(virtual_machine_pop(vm));
-    virtual_machine_push(vm, value_number(op(a, b)));
+    virtual_machine_push(vm, op(a, b));
     return INTERPRET_OK;
 }
 
-static inline double add_op(double a, double b) { return a + b; }
-static inline double subtract_op(double a, double b) { return a - b; }
-static inline double multiply_op(double a, double b) { return a * b; }
-static inline double divide_op(double a, double b) { return a / b; }
+static inline Value add_op(double a, double b) { return value_number(a + b); }
+static inline Value subtract_op(double a, double b) {
+    return value_number(a - b);
+}
+static inline Value multiply_op(double a, double b) {
+    return value_number(a * b);
+}
+static inline Value divide_op(double a, double b) {
+    return value_number(a / b);
+}
+static inline Value greater_op(double a, double b) { return value_bool(a > b); }
+static inline Value less_op(double a, double b) { return value_bool(a < b); }
 
 static InterpreterResult run(VirtualMachine *vm, Chunk *c) {
     vm->chunk = c;
@@ -70,6 +82,27 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c) {
                 virtual_machine_push(vm, constant);
                 break;
             }
+            case OP_TRUE:
+                virtual_machine_push(vm, value_bool(true));
+                break;
+            case OP_FALSE:
+                virtual_machine_push(vm, value_bool(false));
+                break;
+            case OP_EQUAL: {
+                Value a = virtual_machine_pop(vm);
+                Value b = virtual_machine_pop(vm);
+                virtual_machine_push(vm, value_bool(value_equals(a, b)));
+                break;
+            }
+            case OP_GREATER:
+                handle_binary_op(vm, greater_op);
+                break;
+            case OP_LESS:
+                handle_binary_op(vm, less_op);
+                break;
+            case OP_NIL:
+                virtual_machine_push(vm, value_nil());
+                break;
             case OP_ADD:
                 if (handle_binary_op(vm, add_op) != INTERPRET_OK) {
                     return INTERPRET_RUNTIME_ERROR;
@@ -90,6 +123,10 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 break;
+            case OP_NOT:
+                virtual_machine_push(
+                    vm, value_bool(is_falsey(virtual_machine_pop(vm))));
+                break;
             case OP_NEGATE:
                 if (value_is_number(peek(vm, 0))) {
                     runtime_error(vm, "Operand must be a number.");
@@ -109,7 +146,6 @@ static InterpreterResult run(VirtualMachine *vm, Chunk *c) {
     }
 
 #undef READ_BYTE
-#undef BINARY_OP
 }
 
 InterpreterResult virtual_machine_interpret(VirtualMachine *vm,

@@ -30,6 +30,7 @@ bool value_is_nil(Value val);
 bool value_is_bool(Value val);
 bool value_is_number(Value val);
 void value_print(Value val);
+bool value_equals(Value lhs, Value rhs);
 void value_array_init(ValueArray *arr);
 void value_array_write(ValueArray *arr, Value val);
 void value_array_free(ValueArray *arr);
