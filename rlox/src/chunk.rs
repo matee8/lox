@@ -55,12 +55,18 @@ impl Debug for Chunk {
 
             #[expect(
                 clippy::indexing_slicing,
-                reason = "self.lines can only be modified alongside self.codes, so they must have the same length."
+                reason = r#"
+                    `self.codes` and `self.lines` vectors are always modified
+                    together via `self.write_opcode()`.
+                "#
             )]
             let line = self.lines[i];
             #[expect(
                 clippy::indexing_slicing,
-                reason = "self.lines can only be modified alongside self.codes, so they must have the same length. i must be greater than 1 at this point."
+                reason = r#"
+                    `self.codes` and `self.lines` always have the same length
+                    (`i`), validated through enumeration.
+                "#
             )]
             if i > 0 && line == self.lines[i - 1] {
                 write!(f, "   | ")?;
@@ -72,7 +78,10 @@ impl Debug for Chunk {
                 OpCode::Constant(const_idx) => {
                     #[expect(
                         clippy::indexing_slicing,
-                        reason = "self.constants can only contain indexes which point to a valid constant."
+                        reason = r#"
+                            Constant indexes are always valid as they come from
+                            `self.write_constant()`.
+                        "#
                     )]
                     let const_val = self.constants[const_idx];
                     writeln!(

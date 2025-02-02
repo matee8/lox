@@ -50,10 +50,10 @@ pub struct Token<'lexeme> {
 }
 
 pub struct Scanner<'src> {
-    pub source: &'src str,
-    pub start: usize,
-    pub current: usize,
-    pub line: i32,
+    source: &'src str,
+    start: usize,
+    current: usize,
+    line: i32,
 }
 
 impl<'src> Scanner<'src> {
@@ -153,7 +153,12 @@ impl<'src> Scanner<'src> {
         }
         #[expect(
             clippy::string_slice,
-            reason = "self.start and self.current are only modified by self, so it's safe to index."
+            reason = r#"
+                - `self.start` and `self.current` are only modified via
+                  `self.advance()`.
+                - Both values are always <= `self.source.len()`.
+                - Token creation only happens after scanning valid characters.
+            "#
         )]
         Token {
             r#type,
@@ -178,7 +183,11 @@ impl<'src> Scanner<'src> {
     ) -> TokenType {
         #[expect(
             clippy::string_slice,
-            reason = "self.start and self.current are only modified by self, so it's safe to index."
+            reason = r#"
+                - `self.start` and `self.current` are only modified via
+                  `self.advance()`.
+                - Both values are always <= `self.source.len()`.
+            "#
         )]
         if self.current - self.start == start + rest.len()
             && rest == &self.source[self.start + start..rest.len()]

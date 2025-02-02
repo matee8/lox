@@ -70,7 +70,10 @@ impl Vm {
             #[expect(
                 clippy::let_underscore_untyped,
                 clippy::let_underscore_must_use,
-                reason = "The repl doesn't care about errors."
+                reason = r#"
+                    REPL intentionally ignores errors to maintain interactive
+                    session.
+                "#
             )]
             let _ = self.interpret(line);
         }
