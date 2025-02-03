@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Copy)]
+use core::fmt::{self, Display, Formatter};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     Bool(bool),
     Number(f64),
@@ -19,6 +21,26 @@ impl Value {
             Some(value)
         } else {
             None
+        }
+    }
+
+    pub const fn is_falsey(&self) -> bool {
+        match *self {
+            Self::Bool(value) => !value,
+            Self::Number(_) => false,
+            Self::Nil => true,
+        }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::Bool(value) => {
+                write!(f, "{}", if value { "true" } else { "false" })
+            }
+            Self::Number(value) => write!(f, "{value}"),
+            Self::Nil => write!(f, "nil"),
         }
     }
 }

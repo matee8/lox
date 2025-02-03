@@ -6,7 +6,7 @@ use crate::{
     value::Value,
 };
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, PartialOrd, Eq, Ord)]
 enum Precedence {
     None,
     Assignment,
@@ -43,6 +43,7 @@ enum ParseFn {
     Grouping,
     Unary,
     Binary,
+    Literal,
     Number,
 }
 
@@ -120,8 +121,58 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
             infix: Some(ParseFn::Binary),
             precedence: Precedence::Factor,
         };
+        rules[TokenType::Bang as usize] = ParseRule {
+            prefix: Some(ParseFn::Unary),
+            infix: None,
+            precedence: Precedence::Equality,
+        };
+        rules[TokenType::BangEqual as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Comparison,
+        };
+        rules[TokenType::EqualEqual as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Equality,
+        };
+        rules[TokenType::Greater as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Comparison,
+        };
+        rules[TokenType::GreaterEqual as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Comparison,
+        };
+        rules[TokenType::Less as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Comparison,
+        };
+        rules[TokenType::LessEqual as usize] = ParseRule {
+            prefix: None,
+            infix: Some(ParseFn::Binary),
+            precedence: Precedence::Comparison,
+        };
         rules[TokenType::Number as usize] = ParseRule {
             prefix: Some(ParseFn::Number),
+            infix: None,
+            precedence: Precedence::None,
+        };
+        rules[TokenType::False as usize] = ParseRule {
+            prefix: Some(ParseFn::Literal),
+            infix: None,
+            precedence: Precedence::None,
+        };
+        rules[TokenType::True as usize] = ParseRule {
+            prefix: Some(ParseFn::Literal),
+            infix: None,
+            precedence: Precedence::None,
+        };
+        rules[TokenType::Nil as usize] = ParseRule {
+            prefix: Some(ParseFn::Literal),
             infix: None,
             precedence: Precedence::None,
         };
@@ -218,6 +269,7 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
                         ParseFn::Unary => self.unary()?,
                         ParseFn::Binary => self.binary()?,
                         ParseFn::Grouping => self.grouping()?,
+                        ParseFn::Literal => self.literal()?,
                         ParseFn::Number => self.number()?,
                     }
                     state = ParseState::Infix;
@@ -246,6 +298,7 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
                         ParseFn::Unary => self.unary()?,
                         ParseFn::Binary => self.binary()?,
                         ParseFn::Grouping => self.grouping()?,
+                        ParseFn::Literal => self.literal()?,
                         ParseFn::Number => self.number()?,
                     }
                 }
@@ -268,8 +321,10 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
 
         self.parse_precedence(&Precedence::Unary)?;
 
-        if matches!(op_type, TokenType::Minus) {
-            self.chunk.write_opcode(OpCode::Negate, line);
+        match op_type {
+            TokenType::Bang => self.chunk.write_opcode(OpCode::Not, line),
+            TokenType::Minus => self.chunk.write_opcode(OpCode::Negate, line),
+            _ => {}
         }
 
         Ok(())
@@ -292,6 +347,30 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
         self.parse_precedence(&next_precedence)?;
 
         match op_type {
+            TokenType::Bang => {
+                self.chunk.write_opcode(OpCode::Not, line);
+            }
+            TokenType::BangEqual => {
+                self.chunk.write_opcode(OpCode::Equal, line);
+                self.chunk.write_opcode(OpCode::Not, line);
+            }
+            TokenType::EqualEqual => {
+                self.chunk.write_opcode(OpCode::Equal, line);
+            }
+            TokenType::Greater => {
+                self.chunk.write_opcode(OpCode::Greater, line);
+            }
+            TokenType::GreaterEqual => {
+                self.chunk.write_opcode(OpCode::Less, line);
+                self.chunk.write_opcode(OpCode::Not, line);
+            }
+            TokenType::Less => {
+                self.chunk.write_opcode(OpCode::Less, line);
+            }
+            TokenType::LessEqual => {
+                self.chunk.write_opcode(OpCode::Greater, line);
+                self.chunk.write_opcode(OpCode::Not, line);
+            }
             TokenType::Plus => {
                 self.chunk.write_opcode(OpCode::Add, line);
             }
@@ -313,6 +392,28 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
     fn grouping(&mut self) -> Result<(), ParserError<'src>> {
         self.expression()?;
         self.consume(TokenType::RightParen, "Expect ')' after expression.")
+    }
+
+    fn literal(&mut self) -> Result<(), ParserError<'src>> {
+        let previous = self.previous.as_ref().ok_or(ParserError::General {
+            line: 0,
+            msg: "No previous token in binary.",
+        })?;
+
+        match previous.r#type {
+            TokenType::False => {
+                self.chunk.write_opcode(OpCode::False, previous.line);
+            }
+            TokenType::Nil => {
+                self.chunk.write_opcode(OpCode::Nil, previous.line);
+            }
+            TokenType::True => {
+                self.chunk.write_opcode(OpCode::True, previous.line);
+            }
+            _ => {}
+        }
+
+        Ok(())
     }
 
     fn number(&mut self) -> Result<(), ParserError<'src>> {
