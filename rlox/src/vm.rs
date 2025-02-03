@@ -23,15 +23,10 @@ pub enum InterpretError {
     Runtime,
 }
 
-#[derive(Debug, Error)]
-#[error("Stack is empty.")]
-struct StackIsEmptyError;
-
 #[derive(Debug, Default)]
 pub struct Vm {
     stack: VecDeque<Value>,
     chunk: Option<Chunk>,
-    ip: Option<usize>,
 }
 
 #[non_exhaustive]
@@ -50,7 +45,6 @@ impl Vm {
         Self {
             stack: VecDeque::with_capacity(256),
             chunk: None,
-            ip: None,
         }
     }
 
@@ -103,59 +97,66 @@ impl Vm {
         }
 
         self.chunk = Some(chunk);
-        self.ip = Some(0);
 
         self.run()
     }
 
     fn run(&mut self) -> Result<(), InterpretError> {
-        self.ip = Some(0);
         if let Some(chunk) = self.chunk.take() {
-            for code in chunk.codes() {
-                match *code {
+            for code in chunk.codes {
+                match code {
                     OpCode::Constant(const_idx) => {
-                        let Some(constant) = chunk.constants().get(const_idx)
-                        else {
-                            eprintln!("Stack underflow.");
-                            return Err(InterpretError::Compile);
-                        };
+                        let constant = chunk
+                            .constants
+                            .get(const_idx)
+                            .ok_or_else(|| {
+                                self.runtime_error(
+                                    "Stack underflow in const opcode.",
+                                );
+                                InterpretError::Runtime
+                            })?;
                         self.stack.push_back(*constant);
                     }
                     OpCode::Add => {
                         if self.binary_op(Add::add).is_err() {
-                            eprintln!("Stack underflow.");
+                            eprintln!("Stack underflow in add opcode.");
                             return Err(InterpretError::Compile);
                         }
                     }
                     OpCode::Subtract => {
                         if self.binary_op(Sub::sub).is_err() {
-                            eprintln!("Stack underflow");
+                            eprintln!("Stack underflow in sub opcode.");
                             return Err(InterpretError::Compile);
                         }
                     }
                     OpCode::Multiply => {
                         if self.binary_op(Mul::mul).is_err() {
-                            eprintln!("Stack underflow");
+                            eprintln!("Stack underflow in mul opcode.");
                             return Err(InterpretError::Compile);
                         }
                     }
                     OpCode::Divide => {
                         if self.binary_op(Div::div).is_err() {
-                            eprintln!("Stack underflow");
+                            eprintln!("Stack underflow in div opcode.");
                             return Err(InterpretError::Compile);
                         }
                     }
                     OpCode::Negate => {
-                        if let Some(val) = self.stack.pop_back() {
-                            self.stack.push_back(-val);
-                        } else {
-                            eprintln!("Stack underflow.");
-                            return Err(InterpretError::Compile);
-                        }
+                        let value = self.stack.pop_back().ok_or_else(|| {
+                            self.runtime_error(
+                                "Stack underflow in neg opcode.",
+                            );
+                            InterpretError::Runtime
+                        })?;
+                        let number = value.as_number().ok_or_else(|| {
+                            self.runtime_error("Operand must be a number.");
+                            InterpretError::Runtime
+                        })?;
+                        self.stack.push_back(Value::Number(-number));
                     }
                     OpCode::Return => {
                         if let Some(val) = self.stack.pop_back() {
-                            println!("{val}");
+                            println!("{val:?}");
                             return Ok(());
                         }
                         eprintln!("Stack underflow.");
@@ -167,13 +168,43 @@ impl Vm {
         Ok(())
     }
 
-    fn binary_op<T>(&mut self, op: T) -> Result<(), StackIsEmptyError>
+    fn binary_op<T>(&mut self, op: T) -> Result<(), InterpretError>
     where
-        T: FnOnce(Value, Value) -> Value,
+        T: FnOnce(f64, f64) -> f64,
     {
-        let b = self.stack.pop_back().ok_or(StackIsEmptyError)?;
-        let a = self.stack.pop_back().ok_or(StackIsEmptyError)?;
-        self.stack.push_back(op(a, b));
+        let b = self
+            .stack
+            .pop_back()
+            .ok_or_else(|| {
+                eprintln!("Stack is empty.");
+                InterpretError::Runtime
+            })?
+            .as_number()
+            .ok_or_else(|| {
+                self.runtime_error("Operands must be numbers");
+                InterpretError::Runtime
+            })?;
+        let a = self
+            .stack
+            .pop_back()
+            .ok_or_else(|| {
+                self.runtime_error("Stack is empty.");
+                InterpretError::Runtime
+            })?
+            .as_number()
+            .ok_or_else(|| {
+                self.runtime_error("Operands must be numbers.");
+                InterpretError::Runtime
+            })?;
+
+        self.stack.push_back(Value::Number(op(a, b)));
+
         Ok(())
+    }
+
+    fn runtime_error(&self, msg: &str) {
+        eprintln!("{msg}");
+        let line = self.chunk.as_ref().map_or(&0, |chunk| chunk.lines.first().unwrap_or(&0));
+        eprintln!("[line {line}] in script");
     }
 }
