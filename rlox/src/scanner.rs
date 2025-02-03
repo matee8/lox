@@ -191,7 +191,9 @@ impl<'src> Scanner<'src> {
             "#
         )]
         if self.current - self.start == start + rest.len()
-            && rest == &self.source[self.start + start..rest.len()]
+            && rest
+                == &self.source
+                    [self.start + start..self.start + start + rest.len()]
         {
             r#type
         } else {

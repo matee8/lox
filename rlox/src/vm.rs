@@ -14,28 +14,18 @@ use crate::{
     value::Value,
 };
 
-#[non_exhaustive]
 #[derive(Debug, Error)]
-pub enum InterpretError {
-    #[error("Compile time error.")]
-    Compile,
-    #[error("Runtime error.")]
-    Runtime,
+enum RuntimeError {
+    #[error("Stack underflow.")]
+    StackUnderflow,
+    #[error("Operand must be a {0}")]
+    InvalidOperand(&'static str),
 }
 
 #[derive(Debug, Default)]
 pub struct Vm {
     stack: VecDeque<Value>,
     chunk: Option<Chunk>,
-}
-
-#[non_exhaustive]
-#[derive(Debug, Error)]
-pub enum RunFileError {
-    #[error("Failed to open or read file.")]
-    Io,
-    #[error(transparent)]
-    Interpret(#[from] InterpretError),
 }
 
 impl Vm {
@@ -49,7 +39,7 @@ impl Vm {
     }
 
     #[inline]
-    pub fn repl(&mut self) -> Result<(), io::Error> {
+    pub fn repl(&mut self) -> io::Result<()> {
         loop {
             print!("> ");
             io::stdout().flush()?;
@@ -61,47 +51,48 @@ impl Vm {
                 break Ok(());
             }
 
-            #[expect(
-                clippy::let_underscore_untyped,
-                clippy::let_underscore_must_use,
-                reason = r#"
-                    REPL intentionally ignores errors to maintain interactive
-                    session.
-                "#
-            )]
-            let _ = self.interpret(line);
+            self.interpret(line);
         }
     }
 
     #[inline]
-    pub fn run_file<P>(&mut self, path: P) -> Result<(), RunFileError>
+    pub fn run_file<P>(&mut self, path: P) -> io::Result<()>
     where
         P: AsRef<Path>,
     {
-        let contents = fs::read_to_string(path).or(Err(RunFileError::Io))?;
+        let contents = fs::read_to_string(path)?;
 
-        self.interpret(contents)?;
+        self.interpret(contents);
 
         Ok(())
     }
 
     #[inline]
-    fn interpret<S>(&mut self, source: S) -> Result<(), InterpretError>
+    fn interpret<S>(&mut self, source: S)
     where
         S: AsRef<str>,
     {
         let mut chunk = Chunk::new();
 
         if compiler::compile(source.as_ref(), &mut chunk).is_err() {
-            return Err(InterpretError::Compile);
+            eprintln!("Compile time error.");
         }
 
         self.chunk = Some(chunk);
 
-        self.run()
+        let result = self.run();
+
+        if let Err(err) = result {
+            eprintln!("{err}");
+            let line = self
+                .chunk
+                .as_ref()
+                .map_or(&0, |chunk| chunk.lines.first().unwrap_or(&0));
+            eprintln!("[line {line}] in script");
+        }
     }
 
-    fn run(&mut self) -> Result<(), InterpretError> {
+    fn run(&mut self) -> Result<(), RuntimeError> {
         if let Some(chunk) = self.chunk.take() {
             for code in chunk.codes {
                 match code {
@@ -109,58 +100,38 @@ impl Vm {
                         let constant = chunk
                             .constants
                             .get(const_idx)
-                            .ok_or_else(|| {
-                                self.runtime_error(
-                                    "Stack underflow in const opcode.",
-                                );
-                                InterpretError::Runtime
-                            })?;
+                            .ok_or(RuntimeError::StackUnderflow)?;
                         self.stack.push_back(*constant);
                     }
                     OpCode::Add => {
-                        if self.binary_op(Add::add).is_err() {
-                            eprintln!("Stack underflow in add opcode.");
-                            return Err(InterpretError::Compile);
-                        }
+                        self.binary_op(Add::add)?;
                     }
                     OpCode::Subtract => {
-                        if self.binary_op(Sub::sub).is_err() {
-                            eprintln!("Stack underflow in sub opcode.");
-                            return Err(InterpretError::Compile);
-                        }
+                        self.binary_op(Sub::sub)?;
                     }
                     OpCode::Multiply => {
-                        if self.binary_op(Mul::mul).is_err() {
-                            eprintln!("Stack underflow in mul opcode.");
-                            return Err(InterpretError::Compile);
-                        }
+                        self.binary_op(Mul::mul)?;
                     }
                     OpCode::Divide => {
-                        if self.binary_op(Div::div).is_err() {
-                            eprintln!("Stack underflow in div opcode.");
-                            return Err(InterpretError::Compile);
-                        }
+                        self.binary_op(Div::div)?;
                     }
                     OpCode::Negate => {
-                        let value = self.stack.pop_back().ok_or_else(|| {
-                            self.runtime_error(
-                                "Stack underflow in neg opcode.",
-                            );
-                            InterpretError::Runtime
-                        })?;
-                        let number = value.as_number().ok_or_else(|| {
-                            self.runtime_error("Operand must be a number.");
-                            InterpretError::Runtime
-                        })?;
+                        let value = self
+                            .stack
+                            .pop_back()
+                            .ok_or(RuntimeError::StackUnderflow)?;
+                        let number = value
+                            .as_number()
+                            .ok_or(RuntimeError::InvalidOperand("number"))?;
                         self.stack.push_back(Value::Number(-number));
                     }
                     OpCode::Return => {
-                        if let Some(val) = self.stack.pop_back() {
-                            println!("{val:?}");
-                            return Ok(());
-                        }
-                        eprintln!("Stack underflow.");
-                        return Err(InterpretError::Compile);
+                        let value = self
+                            .stack
+                            .pop_back()
+                            .ok_or(RuntimeError::StackUnderflow)?;
+                        println!("{value:?}");
+                        return Ok(());
                     }
                 }
             }
@@ -168,43 +139,26 @@ impl Vm {
         Ok(())
     }
 
-    fn binary_op<T>(&mut self, op: T) -> Result<(), InterpretError>
+    fn binary_op<T>(&mut self, op: T) -> Result<(), RuntimeError>
     where
         T: FnOnce(f64, f64) -> f64,
     {
         let b = self
             .stack
             .pop_back()
-            .ok_or_else(|| {
-                eprintln!("Stack is empty.");
-                InterpretError::Runtime
-            })?
+            .ok_or(RuntimeError::StackUnderflow)?
             .as_number()
-            .ok_or_else(|| {
-                self.runtime_error("Operands must be numbers");
-                InterpretError::Runtime
-            })?;
+            .ok_or(RuntimeError::InvalidOperand("number"))?;
+
         let a = self
             .stack
             .pop_back()
-            .ok_or_else(|| {
-                self.runtime_error("Stack is empty.");
-                InterpretError::Runtime
-            })?
+            .ok_or(RuntimeError::StackUnderflow)?
             .as_number()
-            .ok_or_else(|| {
-                self.runtime_error("Operands must be numbers.");
-                InterpretError::Runtime
-            })?;
+            .ok_or(RuntimeError::InvalidOperand("number"))?;
 
         self.stack.push_back(Value::Number(op(a, b)));
 
         Ok(())
-    }
-
-    fn runtime_error(&self, msg: &str) {
-        eprintln!("{msg}");
-        let line = self.chunk.as_ref().map_or(&0, |chunk| chunk.lines.first().unwrap_or(&0));
-        eprintln!("[line {line}] in script");
     }
 }
