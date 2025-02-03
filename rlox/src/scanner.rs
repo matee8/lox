@@ -121,7 +121,11 @@ impl<'src> Scanner<'src> {
     }
 
     fn matches(&mut self, expected: char) -> bool {
-        self.advance().map_or(false, |char| char == expected)
+        let res = self.peek().map_or(false, |char| char == expected);
+        if res {
+            self.advance();
+        }
+        res
     }
 
     fn skip_whitespace(&mut self) {

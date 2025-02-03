@@ -52,7 +52,6 @@ unused-extern-crates = "warn"
 unused-import-braces = "warn"
 unused-lifetimes = "warn"
 unused-qualifications = "warn"
-variant-size-differences = "warn"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

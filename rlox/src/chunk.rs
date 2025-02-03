@@ -2,13 +2,19 @@ use core::fmt::{self, Debug, Formatter};
 
 use crate::value::Value;
 
-#[derive(Debug)]
 pub enum OpCode {
     Constant(usize),
+    Nil,
+    True,
+    False,
+    Equal,
+    Greater,
+    Less,
     Add,
     Subtract,
     Multiply,
     Divide,
+    Not,
     Negate,
     Return,
 }
@@ -78,14 +84,21 @@ impl Debug for Chunk {
                     let const_val = &self.constants[const_idx];
                     writeln!(
                         f,
-                        "{:<16} {const_idx:4} {const_val:?}",
+                        "{:<16} {const_idx:4} {const_val}",
                         "OP_CONSTANT"
                     )?;
                 }
+                OpCode::Nil => writeln!(f, "OP_NIL")?,
+                OpCode::True => writeln!(f, "OP_TRUE")?,
+                OpCode::False => writeln!(f, "OP_TRUE")?,
+                OpCode::Equal => writeln!(f, "OP_EQUAL")?,
+                OpCode::Greater => writeln!(f, "OP_GREATER")?,
+                OpCode::Less => writeln!(f, "OP_LESS")?,
                 OpCode::Add => writeln!(f, "OP_ADD")?,
                 OpCode::Subtract => writeln!(f, "OP_SUBTRACT")?,
                 OpCode::Multiply => writeln!(f, "OP_MULTIPLY")?,
                 OpCode::Divide => writeln!(f, "OP_DIVIDE")?,
+                OpCode::Not => writeln!(f, "OP_NOT")?,
                 OpCode::Negate => writeln!(f, "OP_NEGATE")?,
                 OpCode::Return => writeln!(f, "OP_RETURN")?,
             }

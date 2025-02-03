@@ -1,4 +1,3 @@
-use core::ops::{Add, Div, Mul, Sub};
 use std::{
     collections::VecDeque,
     fs,
@@ -74,8 +73,8 @@ impl Vm {
     {
         let mut chunk = Chunk::new();
 
-        if compiler::compile(source.as_ref(), &mut chunk).is_err() {
-            eprintln!("Compile time error.");
+        if let Err(err) = compiler::compile(source.as_ref(), &mut chunk) {
+            eprintln!("{err}");
         }
 
         self.chunk = Some(chunk);
@@ -103,17 +102,51 @@ impl Vm {
                             .ok_or(RuntimeError::StackUnderflow)?;
                         self.stack.push_back(*constant);
                     }
+                    OpCode::Nil => {
+                        self.stack.push_back(Value::Nil);
+                    }
+                    OpCode::True => {
+                        self.stack.push_back(Value::Bool(true));
+                    }
+                    OpCode::False => {
+                        self.stack.push_back(Value::Bool(false));
+                    }
+                    OpCode::Equal => {
+                        let a = self
+                            .stack
+                            .pop_back()
+                            .ok_or(RuntimeError::StackUnderflow)?;
+                        let b = self
+                            .stack
+                            .pop_back()
+                            .ok_or(RuntimeError::StackUnderflow)?;
+                        self.stack.push_back(Value::Bool(a == b));
+                    }
+                    OpCode::Greater => {
+                        self.binary_op(|a, b| Value::Bool(a > b))?;
+                    }
+                    OpCode::Less => {
+                        self.binary_op(|a, b| Value::Bool(a < b))?;
+                    }
                     OpCode::Add => {
-                        self.binary_op(Add::add)?;
+                        self.binary_op(|a, b| Value::Number(a + b))?;
                     }
                     OpCode::Subtract => {
-                        self.binary_op(Sub::sub)?;
+                        self.binary_op(|a, b| Value::Number(a - b))?;
                     }
                     OpCode::Multiply => {
-                        self.binary_op(Mul::mul)?;
+                        self.binary_op(|a, b| Value::Number(a * b))?;
                     }
                     OpCode::Divide => {
-                        self.binary_op(Div::div)?;
+                        self.binary_op(|a, b| Value::Number(a / b))?;
+                    }
+                    OpCode::Not => {
+                        let value = self
+                            .stack
+                            .pop_back()
+                            .ok_or(RuntimeError::StackUnderflow)?
+                            .is_falsey();
+                        self.stack.push_back(Value::Bool(value));
                     }
                     OpCode::Negate => {
                         let value = self
@@ -130,7 +163,7 @@ impl Vm {
                             .stack
                             .pop_back()
                             .ok_or(RuntimeError::StackUnderflow)?;
-                        println!("{value:?}");
+                        println!("{value}");
                         return Ok(());
                     }
                 }
@@ -141,7 +174,7 @@ impl Vm {
 
     fn binary_op<T>(&mut self, op: T) -> Result<(), RuntimeError>
     where
-        T: FnOnce(f64, f64) -> f64,
+        T: FnOnce(f64, f64) -> Value,
     {
         let b = self
             .stack
@@ -157,7 +190,7 @@ impl Vm {
             .as_number()
             .ok_or(RuntimeError::InvalidOperand("number"))?;
 
-        self.stack.push_back(Value::Number(op(a, b)));
+        self.stack.push_back(op(a, b));
 
         Ok(())
     }
