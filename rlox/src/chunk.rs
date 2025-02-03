@@ -2,6 +2,7 @@ use core::fmt::{self, Debug, Formatter};
 
 use crate::value::Value;
 
+#[derive(Debug)]
 pub enum OpCode {
     Constant(usize),
     Add,
@@ -13,9 +14,9 @@ pub enum OpCode {
 }
 
 pub struct Chunk {
-    codes: Vec<OpCode>,
-    constants: Vec<Value>,
-    lines: Vec<i32>,
+    pub codes: Vec<OpCode>,
+    pub constants: Vec<Value>,
+    pub lines: Vec<i32>,
 }
 
 impl Chunk {
@@ -35,14 +36,6 @@ impl Chunk {
     pub fn write_constant(&mut self, constant: Value, line: i32) {
         self.constants.push(constant);
         self.write_opcode(OpCode::Constant(self.constants.len() - 1), line);
-    }
-
-    pub const fn codes(&self) -> &Vec<OpCode> {
-        &self.codes
-    }
-
-    pub const fn constants(&self) -> &Vec<Value> {
-        &self.constants
     }
 }
 
@@ -82,10 +75,10 @@ impl Debug for Chunk {
                             `self.write_constant()`.
                         "#
                     )]
-                    let const_val = self.constants[const_idx];
+                    let const_val = &self.constants[const_idx];
                     writeln!(
                         f,
-                        "{:<16} {const_idx:4} {const_val}",
+                        "{:<16} {const_idx:4} {const_val:?}",
                         "OP_CONSTANT"
                     )?;
                 }

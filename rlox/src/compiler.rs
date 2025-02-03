@@ -3,6 +3,7 @@ use thiserror::Error;
 use crate::{
     chunk::{Chunk, OpCode},
     scanner::{Scanner, Token, TokenType},
+    value::Value,
 };
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
@@ -326,13 +327,14 @@ impl<'src, 'scanner> Parser<'src, 'scanner> {
                 Specific parse errors contain details not usefor for end users.
             "#
         )]
-        let value: f64 =
+        let number: f64 =
             previous.lexeme.parse().map_err(|_| ParserError::AtToken {
                 line: previous.line,
                 location: previous.lexeme,
                 msg: "Invalid number.",
             })?;
-        self.chunk.write_constant(value, previous.line);
+        self.chunk
+            .write_constant(Value::Number(number), previous.line);
 
         Ok(())
     }
